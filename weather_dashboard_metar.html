@@ -1,0 +1,651 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>METAR Observations Dashboard</title>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4/dist/chart.umd.min.js"></script>
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    background: #0f172a;
+    color: #e2e8f0;
+    padding: 1.5rem 2rem;
+    min-height: 100vh;
+  }
+
+  .header {
+    max-width: 1400px;
+    margin: 0 auto 1.25rem;
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 1rem;
+  }
+
+  .header div h1 { font-size: 1.35rem; font-weight: 600; color: #f8fafc; }
+  .header div p { color: #94a3b8; margin-top: .2rem; font-size: .8125rem; }
+
+  .badge {
+    display: inline-block; font-size: .6rem; font-weight: 700; padding: .15rem .5rem;
+    border-radius: 9999px; letter-spacing: .04em; vertical-align: middle; margin-left: .375rem;
+  }
+  .badge-metar { background: #3730a3; color: #c7d2fe; }
+  .badge-iem { background: #713f12; color: #fde68a; }
+
+  .controls {
+    display: flex; align-items: center; gap: .625rem; flex-wrap: wrap;
+  }
+  .controls label {
+    font-size: .6875rem; color: #94a3b8; text-transform: uppercase; letter-spacing: .04em;
+  }
+  .controls input {
+    background: #1e293b; border: 1px solid #334155; border-radius: .5rem;
+    color: #e2e8f0; padding: .375rem .625rem; font-size: .8125rem; font-family: inherit;
+  }
+  .controls button {
+    background: #3b82f6; color: #fff; border: none; border-radius: .5rem;
+    padding: .4375rem 1rem; font-size: .8125rem; font-weight: 600; cursor: pointer;
+    font-family: inherit;
+  }
+  .controls button:hover { background: #2563eb; }
+
+  .summary {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+    gap: .75rem;
+    max-width: 1400px;
+    margin: 0 auto 1.25rem;
+  }
+
+  .card {
+    background: #1e293b; border: 1px solid #334155; border-radius: .75rem;
+    padding: .75rem 1rem;
+  }
+  .card .label {
+    font-size: .6875rem; text-transform: uppercase; letter-spacing: .05em;
+    color: #64748b; margin-bottom: .125rem;
+  }
+  .card .value { font-size: 1.35rem; font-weight: 700; color: #f8fafc; }
+  .card .unit { font-size: .8125rem; font-weight: 400; color: #94a3b8; }
+
+  .table-wrap {
+    max-width: 1400px; margin: 0 auto;
+    background: #1e293b; border: 1px solid #334155; border-radius: .75rem;
+    overflow-x: auto;
+  }
+
+  table { width: 100%; border-collapse: collapse; font-size: .8125rem; white-space: nowrap; }
+
+  thead th {
+    position: sticky; top: 0; z-index: 1;
+    background: #1e293b; color: #94a3b8; font-weight: 600;
+    text-transform: uppercase; letter-spacing: .04em; font-size: .6875rem;
+    padding: .625rem .75rem; text-align: left; border-bottom: 2px solid #334155;
+  }
+
+  tbody td {
+    padding: .5rem .75rem; border-bottom: 1px solid rgba(51,65,85,.4); color: #cbd5e1;
+  }
+  tbody tr { background: #0f172a; }
+  tbody tr:nth-child(even) { background: #162032; }
+  tbody tr:hover { background: #1e3a5f; }
+
+  .pill {
+    display: inline-block; padding: .1rem .4rem; border-radius: 9999px;
+    font-size: .625rem; font-weight: 600;
+  }
+  .pill-day { background: #422006; color: #fbbf24; }
+  .pill-night { background: #1e1b4b; color: #a5b4fc; }
+
+  .metar-raw {
+    font-family: 'SF Mono', 'Fira Code', Consolas, monospace;
+    font-size: .625rem; color: #64748b; max-width: 400px;
+    overflow: hidden; text-overflow: ellipsis;
+  }
+
+  .loading, .error { text-align: center; padding: 3rem; font-size: .875rem; }
+  .loading { color: #64748b; }
+  .error { color: #f87171; }
+
+  .chart-wrap {
+    max-width: 1400px; margin: 0 auto 1.25rem;
+    background: #1e293b; border: 1px solid #334155; border-radius: .75rem;
+    padding: 1rem 1.25rem .75rem;
+  }
+  .chart-wrap canvas { width: 100% !important; }
+
+  .source-note {
+    max-width: 1400px; margin: .75rem auto 0;
+    font-size: .6875rem; color: #475569; text-align: right;
+  }
+</style>
+</head>
+<body>
+
+<div class="header">
+  <div>
+    <h1 id="title">KSEA — METAR Observations<span class="badge badge-metar">PARSED FROM RAW METAR</span></h1>
+    <p id="subtitle">Loading&hellip;</p>
+  </div>
+  <div class="controls">
+    <label for="stationInput">Station</label>
+    <input type="text" id="stationInput" value="KSEA" style="width:5.5rem" maxlength="4">
+    <label for="dateInput">Date</label>
+    <input type="date" id="dateInput">
+    <button onclick="run()">Load</button>
+  </div>
+</div>
+
+<div class="summary" id="summary"></div>
+
+<div class="chart-wrap">
+  <canvas id="tempChart" height="220"></canvas>
+</div>
+
+<div class="table-wrap">
+  <div class="loading" id="loading">Fetching METAR data&hellip;</div>
+  <table id="table" style="display:none">
+    <thead>
+      <tr>
+        <th>Time (local)</th>
+        <th>D/N</th>
+        <th>Conditions</th>
+        <th>Temp °F</th>
+        <th>Feels Like</th>
+        <th>Dew Pt</th>
+        <th>RH %</th>
+        <th>Wind</th>
+        <th>Gust</th>
+        <th>Pressure</th>
+        <th>Visibility</th>
+        <th>Precip/hr</th>
+        <th>Cloud</th>
+        <th>METAR</th>
+      </tr>
+    </thead>
+    <tbody id="tbody"></tbody>
+  </table>
+</div>
+<div class="source-note" id="sourceNote"></div>
+
+<script>
+// ---------------------------------------------------------------------------
+// Station elevations (meters) — FAA published field elevation
+// ---------------------------------------------------------------------------
+const STATION_ELEV_M = { KSEA: 132.0, KJFK: 4.0, KORD: 205.0, KLAX: 38.0,
+  KDEN: 1655.0, KATL: 313.0, KSFO: 4.0, KBOS: 6.0, KMIA: 2.4, KDFW: 183.0,
+  KPHX: 346.0, KLAS: 664.0, KPDX: 6.0, KMSP: 256.0, KDTW: 196.0 };
+
+const SUNRISE_SUNSET_UTC = {
+  KSEA: [14, 2], KJFK: [11, 23], KORD: [12, 0], KLAX: [14, 2],
+};
+
+// ---------------------------------------------------------------------------
+// METAR parser
+// ---------------------------------------------------------------------------
+const CARDINAL = ['N','NNE','NE','ENE','E','ESE','SE','SSE','S','SSW','SW','WSW','W','WNW','NW','NNW'];
+function degToCardinal(d) { return d == null ? null : CARDINAL[Math.round(d / 22.5) % 16]; }
+
+let _parseRefDate = new Date();
+function setParseRefDate(d) { _parseRefDate = d; }
+
+function parseMetar(raw) {
+  const m = { raw, type: null, station: null, timeUtc: null,
+    windDir: null, windKt: null, gustKt: null, visSm: null,
+    wxCodes: [], clouds: [], tempC: null, dewpC: null,
+    tempPrecC: null, dewpPrecC: null, altInhg: null, slpHpa: null,
+    precip1hr: null };
+
+  const tok = raw.trim().split(/\s+/);
+  let i = 0;
+
+  if (tok[i] === 'METAR' || tok[i] === 'SPECI') { m.type = tok[i]; i++; }
+  if (i < tok.length && /^[A-Z]{4}$/.test(tok[i])) { m.station = tok[i]; i++; }
+
+  let tm = i < tok.length && tok[i].match(/^(\d{2})(\d{2})(\d{2})Z$/);
+  if (tm) {
+    const ref = _parseRefDate;
+    const d = new Date(Date.UTC(ref.getUTCFullYear(), ref.getUTCMonth(), +tm[1], +tm[2], +tm[3]));
+    if (d > new Date(ref.getTime() + 86400000)) d.setUTCMonth(d.getUTCMonth() - 1);
+    m.timeUtc = d;
+    i++;
+  }
+
+  if (i < tok.length && tok[i] === 'AUTO') i++;
+
+  let wm = i < tok.length && tok[i].match(/^(VRB|\d{3})(\d{2,3})(G(\d{2,3}))?KT$/);
+  if (wm) {
+    m.windDir = wm[1] === 'VRB' ? null : +wm[1];
+    m.windKt = +wm[2];
+    m.gustKt = wm[4] ? +wm[4] : null;
+    i++;
+  }
+  if (i < tok.length && /^\d{3}V\d{3}$/.test(tok[i])) i++;
+
+  if (i < tok.length) {
+    if (tok[i] === 'M1/4SM') { m.visSm = 0.25; i++; }
+    else {
+      let vm = tok[i].match(/^(\d+)SM$/);
+      let fm = tok[i].match(/^(\d+)\/(\d+)SM$/);
+      if (vm) { m.visSm = +vm[1]; i++; }
+      else if (fm) { m.visSm = +fm[1] / +fm[2]; i++; }
+    }
+  }
+
+  const wxRe = /^([+-]|VC)?(MI|BC|PR|DR|BL|SH|TS|FZ)?(DZ|RA|SN|SG|IC|PL|GR|GS|UP|BR|FG|FU|VA|DU|SA|HZ|PY|PO|SQ|FC|SS|DS)$/;
+  const cldRe = /^(FEW|SCT|BKN|OVC|CLR|SKC|VV)(\d{3})?$/;
+  const tdRe = /^(M?\d{1,2})\/(M?\d{1,2})?$/;
+  const altRe = /^A(\d{4})$/;
+
+  while (i < tok.length && tok[i] !== 'RMK') {
+    let t = tok[i];
+    let wm2 = t.match(wxRe);
+    if (wm2) {
+      let intensity = wm2[1] || '';
+      let vicinity = intensity === 'VC'; if (vicinity) intensity = '';
+      m.wxCodes.push({ intensity, desc: wm2[2] || '', phenom: wm2[3] || '', vicinity });
+      i++; continue;
+    }
+    let cm = t.match(cldRe);
+    if (cm) { m.clouds.push({ cover: cm[1], baseFt: cm[2] ? +cm[2] * 100 : null }); i++; continue; }
+    let tdm = t.match(tdRe);
+    if (tdm) {
+      m.tempC = tdm[1].startsWith('M') ? -parseInt(tdm[1].slice(1)) : +tdm[1];
+      if (tdm[2]) m.dewpC = tdm[2].startsWith('M') ? -parseInt(tdm[2].slice(1)) : +tdm[2];
+      i++; continue;
+    }
+    let am = t.match(altRe);
+    if (am) { m.altInhg = +am[1] / 100; i++; continue; }
+    i++;
+  }
+
+  let rmkIdx = tok.indexOf('RMK');
+  if (rmkIdx >= 0) {
+    const rmk = tok.slice(rmkIdx + 1).join(' ');
+    let tg = rmk.match(/T(\d)(\d{3})(\d)(\d{3})/);
+    if (tg) {
+      m.tempPrecC = (+tg[2] / 10) * (tg[1] === '1' ? -1 : 1);
+      m.dewpPrecC = (+tg[4] / 10) * (tg[3] === '1' ? -1 : 1);
+    }
+    let sl = rmk.match(/SLP(\d{3})/);
+    if (sl) { let v = +sl[1]; m.slpHpa = v < 500 ? 1000 + v / 10 : 900 + v / 10; }
+    let p1 = rmk.match(/P(\d{4})/);
+    if (p1) m.precip1hr = +p1[1] / 100;
+  }
+  return m;
+}
+
+// ---------------------------------------------------------------------------
+// Conversions
+// ---------------------------------------------------------------------------
+function cToF(c) { return c == null ? null : Math.round(c * 9 / 5 + 32); }
+function ktToMph(k) { return k == null ? null : Math.round(k * 1.15078); }
+
+function altToStation(alt, elevM) {
+  if (alt == null || elevM == null) return null;
+  const ratio = Math.pow((288.15 - 0.0065 * elevM) / 288.15, 5.2559);
+  return Math.round(alt * ratio * 100) / 100;
+}
+
+function calcRH(tC, dC) {
+  if (tC == null || dC == null) return null;
+  const a = 17.625, b = 243.04;
+  return Math.round(Math.min(100, Math.max(0,
+    100 * Math.exp(a * dC / (b + dC)) / Math.exp(a * tC / (b + tC)))));
+}
+
+function calcWC(tF, mph) {
+  if (tF == null || mph == null || tF > 50 || mph <= 3) return null;
+  return Math.round(35.74 + 0.6215 * tF - 35.75 * Math.pow(mph, 0.16) + 0.4275 * tF * Math.pow(mph, 0.16));
+}
+
+function calcFeels(tF, mph, rh) {
+  let wc = calcWC(tF, mph);
+  if (wc != null) return wc;
+  return tF;
+}
+
+const WX_PHENOM = { DZ:'Drizzle', RA:'Rain', SN:'Snow', SG:'Snow Grains', IC:'Ice Crystals',
+  PL:'Ice Pellets', GR:'Hail', GS:'Small Hail', UP:'Unknown Precip',
+  BR:'Mist', FG:'Fog', FU:'Smoke', HZ:'Haze', DU:'Dust', SA:'Sand' };
+const WX_INT = { '-':'Light', '+':'Heavy', '':'' };
+
+function skyCover(clouds) {
+  const pri = { OVC:4, BKN:3, SCT:2, FEW:1, VV:4, CLR:0, SKC:0 };
+  let best = 'CLR';
+  for (const c of clouds) if ((pri[c.cover]||0) > (pri[best]||0)) best = c.cover;
+  return best;
+}
+
+function wxPhrase(parsed, mph) {
+  let phrase;
+  if (parsed.wxCodes.length) {
+    const parts = parsed.wxCodes.map(wx => {
+      let p = [];
+      let int = WX_INT[wx.intensity] || '';
+      if (int) p.push(int);
+      if (wx.desc === 'FZ') p.push('Freezing');
+      else if (wx.desc === 'TS') p.push('Thunderstorm');
+      else if (wx.desc === 'SH' && !wx.phenom) p.push('Showers');
+      if (wx.phenom && WX_PHENOM[wx.phenom]) {
+        let ph = WX_PHENOM[wx.phenom];
+        if (wx.desc === 'SH' && wx.phenom === 'RA') ph = 'Rain Showers';
+        else if (wx.desc === 'SH' && wx.phenom === 'SN') ph = 'Snow Showers';
+        else if (wx.desc === 'FZ' && wx.phenom === 'RA') ph = 'Freezing Rain';
+        else if (wx.desc === 'FZ' && wx.phenom === 'DZ') ph = 'Freezing Drizzle';
+        p.push(ph);
+      }
+      return wx.vicinity ? p.join(' ') + ' in Vicinity' : p.join(' ');
+    });
+    phrase = parts.length <= 2 ? parts.join(' and ') : parts[0];
+  } else {
+    const sky = skyCover(parsed.clouds);
+    const map = { OVC:'Cloudy', BKN:'Mostly Cloudy', SCT:'Partly Cloudy',
+      FEW:'Mostly Clear', CLR:'Clear', SKC:'Clear', VV:'Cloudy' };
+    phrase = map[sky] || 'Fair';
+  }
+  if (mph != null && mph >= 22) phrase += ' / Windy';
+  return phrase;
+}
+
+function getDayInd(dt, station) {
+  const h = dt.getUTCHours();
+  const [rise, set] = SUNRISE_SUNSET_UTC[station] || [12, 0];
+  if (rise < set) return rise <= h && h < set ? 'D' : 'N';
+  return set <= h && h < rise ? 'N' : 'D';
+}
+
+function toObs(parsed, elevM) {
+  const tC = parsed.tempPrecC ?? parsed.tempC;
+  const dC = parsed.dewpPrecC ?? parsed.dewpC;
+  const tF = cToF(tC), dF = cToF(dC);
+  const mph = ktToMph(parsed.windKt), gust = ktToMph(parsed.gustKt);
+  const rh = calcRH(tC, dC);
+  const feels = calcFeels(tF, mph, rh);
+  const pres = altToStation(parsed.altInhg, elevM);
+  const epoch = parsed.timeUtc ? Math.floor(parsed.timeUtc.getTime() / 1000) : null;
+  const phrase = wxPhrase(parsed, mph);
+  const sky = skyCover(parsed.clouds);
+  const dayInd = parsed.timeUtc && parsed.station ? getDayInd(parsed.timeUtc, parsed.station) : null;
+
+  return {
+    epoch, temp: tF, dewPt: dF, rh, wspd: mph, gust,
+    pressure: pres, vis: parsed.visSm, wc: calcWC(tF, mph) ?? tF,
+    feels_like: feels, wx_phrase: phrase,
+    clds: sky === 'CLR' || sky === 'SKC' ? 'CLR' : sky,
+    precip_hrly: parsed.precip1hr ?? 0.0,
+    wdir_cardinal: degToCardinal(parsed.windDir),
+    dayInd, raw: parsed.raw,
+  };
+}
+
+// ---------------------------------------------------------------------------
+// Thinning — keep hourly + non-standard-time observations (like Weather.com)
+// ---------------------------------------------------------------------------
+function thinLikeWeathercom(obs) {
+  const byHour = {};
+  const extras = [];
+  for (const o of obs) {
+    if (!o.epoch) continue;
+    const dt = new Date(o.epoch * 1000);
+    const min = dt.getUTCMinutes();
+    const key = dt.toISOString().slice(0, 13);
+    // Standard hourly obs are at :53; anything far from :53 is a SPECI / special
+    if (Math.abs(min - 53) > 10) { extras.push(o); continue; }
+    if (!byHour[key] || Math.abs(min - 53) < Math.abs(new Date(byHour[key].epoch * 1000).getUTCMinutes() - 53))
+      byHour[key] = o;
+  }
+  return [...Object.values(byHour), ...extras].sort((a, b) => a.epoch - b.epoch);
+}
+
+// ---------------------------------------------------------------------------
+// Fetch
+// ---------------------------------------------------------------------------
+function proxy(url) { return '/proxy?url=' + encodeURIComponent(url); }
+
+function isToday(dateStr) {
+  const now = new Date();
+  return dateStr === `${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}-${String(now.getDate()).padStart(2,'0')}`;
+}
+
+async function fetchMetars(station, dateStr) {
+  if (isToday(dateStr)) {
+    const url = `https://aviationweather.gov/api/data/metar?ids=${station}&hours=24&format=raw`;
+    const res = await fetch(proxy(url));
+    if (!res.ok) throw new Error(`METAR fetch: HTTP ${res.status}`);
+    const text = await res.text();
+    return text.trim().split('\n').filter(l => l.trim());
+  }
+  const iemStation = station.startsWith('K') ? station.slice(1) : station;
+  const [y, m, d] = dateStr.split('-');
+  const endDay = new Date(+y, +m - 1, +d + 2);
+  const y2 = endDay.getFullYear(), m2 = endDay.getMonth() + 1, d2 = endDay.getDate();
+  const url = `https://mesonet.agron.iastate.edu/cgi-bin/request/asos.py`
+    + `?station=${iemStation}&data=metar&tz=Etc/UTC&format=onlycomma&latlon=no&elev=no`
+    + `&year1=${y}&month1=${+m}&day1=${+d}&year2=${y2}&month2=${m2}&day2=${d2}`;
+  const res = await fetch(proxy(url));
+  if (!res.ok) throw new Error(`IEM fetch: HTTP ${res.status}`);
+  const text = await res.text();
+  const lines = text.trim().split('\n');
+  const metars = lines.slice(1)
+    .map(line => { const cols = line.split(','); return cols.length >= 3 ? cols.slice(2).join(',').trim() : ''; })
+    .filter(l => l && /^(METAR|SPECI|[A-Z]{4})\s/.test(l))
+    .filter(l => !l.includes('MADISHF'));
+  const seen = new Set();
+  return metars.filter(l => {
+    const m = l.match(/\d{6}Z/);
+    if (!m) return true;
+    if (seen.has(m[0])) return false;
+    seen.add(m[0]);
+    return true;
+  });
+}
+
+// ---------------------------------------------------------------------------
+// Render
+// ---------------------------------------------------------------------------
+const TZ = 'America/Los_Angeles';
+function localDateStr(epoch, tz) {
+  return new Date(epoch * 1000).toLocaleDateString('en-CA', { timeZone: tz });
+}
+function fmtTime(epoch) {
+  return new Date(epoch * 1000).toLocaleTimeString('en-US',
+    { timeZone: TZ, hour: '2-digit', minute: '2-digit', hour12: true });
+}
+
+function renderSummary(obs) {
+  const temps = obs.map(o => o.temp).filter(t => t != null);
+  const winds = obs.map(o => o.wspd).filter(w => w != null);
+  const gusts = obs.map(o => o.gust).filter(g => g != null);
+  const precips = obs.map(o => o.precip_hrly).filter(p => p != null && p > 0);
+  const totalPrecip = obs.reduce((s, o) => s + (o.precip_hrly || 0), 0);
+
+  const cards = [
+    { label: 'High', value: temps.length ? Math.max(...temps) : '—', unit: '°F' },
+    { label: 'Low', value: temps.length ? Math.min(...temps) : '—', unit: '°F' },
+    { label: 'Max Wind', value: winds.length ? Math.max(...winds) : '—', unit: 'mph' },
+    { label: 'Max Gust', value: gusts.length ? Math.max(...gusts) : '—', unit: 'mph' },
+    { label: 'Total Precip', value: totalPrecip.toFixed(2), unit: 'in' },
+    { label: 'Observations', value: obs.length, unit: '' },
+  ];
+
+  document.getElementById('summary').innerHTML = cards.map(c => `
+    <div class="card">
+      <div class="label">${c.label}</div>
+      <div class="value">${c.value} <span class="unit">${c.unit}</span></div>
+    </div>`).join('');
+}
+
+let tempChartInstance = null;
+
+function renderChart(obs) {
+  const ctx = document.getElementById('tempChart').getContext('2d');
+  if (tempChartInstance) tempChartInstance.destroy();
+
+  const labels = obs.filter(o => o.epoch).map(o => fmtTime(o.epoch));
+  const temps = obs.filter(o => o.epoch).map(o => o.temp);
+  const feels = obs.filter(o => o.epoch).map(o => o.feels_like);
+  const dews = obs.filter(o => o.epoch).map(o => o.dewPt);
+
+  const gridColor = 'rgba(51,65,85,.35)';
+  const tickColor = '#64748b';
+
+  tempChartInstance = new Chart(ctx, {
+    type: 'line',
+    data: {
+      labels,
+      datasets: [
+        {
+          label: 'Temp (°F)',
+          data: temps,
+          borderColor: '#f59e0b',
+          backgroundColor: 'rgba(245,158,11,.1)',
+          borderWidth: 2,
+          pointRadius: 3,
+          pointBackgroundColor: '#f59e0b',
+          tension: 0.3,
+          fill: false,
+        },
+        {
+          label: 'Feels Like (°F)',
+          data: feels,
+          borderColor: '#ef4444',
+          backgroundColor: 'rgba(239,68,68,.1)',
+          borderWidth: 1.5,
+          borderDash: [5, 3],
+          pointRadius: 2,
+          pointBackgroundColor: '#ef4444',
+          tension: 0.3,
+          fill: false,
+        },
+        {
+          label: 'Dew Point (°F)',
+          data: dews,
+          borderColor: '#06b6d4',
+          backgroundColor: 'rgba(6,182,212,.1)',
+          borderWidth: 1.5,
+          pointRadius: 2,
+          pointBackgroundColor: '#06b6d4',
+          tension: 0.3,
+          fill: false,
+        },
+      ],
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      interaction: { mode: 'index', intersect: false },
+      plugins: {
+        legend: {
+          labels: { color: '#94a3b8', font: { size: 11 }, usePointStyle: true, pointStyleWidth: 12, padding: 16 },
+        },
+        tooltip: {
+          backgroundColor: '#1e293b',
+          titleColor: '#f8fafc',
+          bodyColor: '#cbd5e1',
+          borderColor: '#334155',
+          borderWidth: 1,
+          padding: 10,
+          callbacks: {
+            label: ctx => `${ctx.dataset.label}: ${ctx.parsed.y != null ? ctx.parsed.y + '°F' : '—'}`,
+          },
+        },
+      },
+      scales: {
+        x: {
+          ticks: { color: tickColor, font: { size: 10 }, maxRotation: 45, autoSkip: true, maxTicksLimit: 24 },
+          grid: { color: gridColor },
+        },
+        y: {
+          ticks: { color: tickColor, font: { size: 10 }, callback: v => v + '°' },
+          grid: { color: gridColor },
+        },
+      },
+    },
+  });
+}
+
+function renderTable(obs) {
+  document.getElementById('tbody').innerHTML = obs.map(o => `<tr>
+    <td>${o.epoch ? fmtTime(o.epoch) : '—'}</td>
+    <td>${o.dayInd === 'D'
+      ? '<span class="pill pill-day">Day</span>'
+      : '<span class="pill pill-night">Night</span>'}</td>
+    <td>${o.wx_phrase || '—'}</td>
+    <td><strong>${o.temp ?? '—'}</strong></td>
+    <td>${o.feels_like ?? '—'}</td>
+    <td>${o.dewPt ?? '—'}</td>
+    <td>${o.rh ?? '—'}</td>
+    <td>${o.wdir_cardinal ?? ''} ${o.wspd ?? '—'} mph</td>
+    <td>${o.gust != null ? o.gust + ' mph' : '—'}</td>
+    <td>${o.pressure != null ? o.pressure + ' in' : '—'}</td>
+    <td>${o.vis != null ? o.vis + ' mi' : '—'}</td>
+    <td>${o.precip_hrly != null ? o.precip_hrly.toFixed(2) + ' in' : '—'}</td>
+    <td>${o.clds || '—'}</td>
+    <td class="metar-raw" title="${o.raw.replace(/"/g, '&quot;')}">${o.raw}</td>
+  </tr>`).join('');
+
+  document.getElementById('loading').style.display = 'none';
+  document.getElementById('table').style.display = '';
+}
+
+// ---------------------------------------------------------------------------
+// Main
+// ---------------------------------------------------------------------------
+async function run() {
+  const station = document.getElementById('stationInput').value.toUpperCase().trim();
+  const dateStr = document.getElementById('dateInput').value;
+  const loading = document.getElementById('loading');
+  const table = document.getElementById('table');
+
+  if (!dateStr) { loading.textContent = 'Please select a date.'; return; }
+
+  const src = isToday(dateStr) ? 'aviationweather.gov (live)' : 'IEM ASOS archive';
+  loading.style.display = ''; loading.className = 'loading';
+  loading.textContent = `Fetching METAR from ${src} for ${station}…`;
+  table.style.display = 'none';
+  document.getElementById('summary').innerHTML = '';
+
+  const elevM = STATION_ELEV_M[station] ?? null;
+
+  try {
+    const rawLines = await fetchMetars(station, dateStr);
+    if (!rawLines.length) throw new Error('No observations returned.');
+
+    setParseRefDate(new Date(dateStr + 'T12:00:00Z'));
+    const allObs = rawLines.map(line => toObs(parseMetar(line), elevM))
+      .filter(o => o.epoch && localDateStr(o.epoch, TZ) === dateStr);
+    allObs.sort((a, b) => (a.epoch || 0) - (b.epoch || 0));
+    const thinned = thinLikeWeathercom(allObs);
+
+    renderSummary(thinned);
+    renderChart(thinned);
+    renderTable(thinned);
+
+    document.getElementById('title').innerHTML =
+      `${station} — METAR Observations<span class="badge badge-metar">PARSED FROM RAW METAR</span>`;
+    const srcBadge = isToday(dateStr) ? '' : '<span class="badge badge-iem">IEM ARCHIVE</span>';
+    document.getElementById('subtitle').textContent =
+      `${thinned.length} observations for ${dateStr}`;
+    document.getElementById('sourceNote').textContent =
+      `Source: ${src} — parsed with T-group precision, station pressure via ${elevM ? elevM + 'm' : 'unknown'} elevation`;
+  } catch (e) {
+    loading.className = 'error';
+    loading.textContent = 'Error: ' + e.message;
+    console.error(e);
+  }
+}
+
+(function init() {
+  const now = new Date();
+  document.getElementById('dateInput').value =
+    `${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}-${String(now.getDate()).padStart(2,'0')}`;
+  run();
+})();
+</script>
+</body>
+</html>

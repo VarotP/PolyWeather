@@ -1,0 +1,1200 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Temperature Forecast Dashboard</title>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4/dist/chart.umd.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-annotation@3/dist/chartjs-plugin-annotation.min.js"></script>
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9/dist/leaflet.css">
+<script src="https://unpkg.com/leaflet@1.9/dist/leaflet.js"></script>
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    background: #0f172a; color: #e2e8f0;
+    padding: 1.5rem 2rem; min-height: 100vh;
+  }
+
+  .header {
+    max-width: 1440px; margin: 0 auto 1.25rem;
+    display: flex; align-items: flex-start; justify-content: space-between;
+    flex-wrap: wrap; gap: 1rem;
+  }
+  .header div h1 { font-size: 1.35rem; font-weight: 600; color: #f8fafc; }
+  .header div p  { color: #94a3b8; margin-top: .2rem; font-size: .8125rem; }
+
+  .badge {
+    display: inline-block; font-size: .6rem; font-weight: 700; padding: .15rem .5rem;
+    border-radius: 9999px; letter-spacing: .04em; vertical-align: middle; margin-left: .375rem;
+  }
+  .badge-gefs  { background: #1e3a5f; color: #93c5fd; }
+  .badge-hrrr  { background: #14532d; color: #86efac; }
+  .badge-nam   { background: #4a1d6a; color: #d8b4fe; }
+  .badge-twc   { background: #7c2d12; color: #fdba74; }
+  .badge-metar { background: #3730a3; color: #c7d2fe; }
+
+  .controls {
+    display: flex; align-items: center; gap: .625rem; flex-wrap: wrap;
+  }
+  .controls label {
+    font-size: .6875rem; color: #94a3b8; text-transform: uppercase; letter-spacing: .04em;
+  }
+  .controls input, .controls select {
+    background: #1e293b; border: 1px solid #334155; border-radius: .5rem;
+    color: #e2e8f0; padding: .375rem .625rem; font-size: .8125rem; font-family: inherit;
+  }
+  .controls button {
+    background: #3b82f6; color: #fff; border: none; border-radius: .5rem;
+    padding: .4375rem 1rem; font-size: .8125rem; font-weight: 600; cursor: pointer;
+    font-family: inherit;
+  }
+  .controls button:hover { background: #2563eb; }
+  .btn-save {
+    background: #16a34a; padding: .4375rem .875rem;
+  }
+  .btn-save:hover { background: #15803d !important; }
+  .btn-save:disabled { background: #334155; color: #64748b; cursor: not-allowed; }
+  .btn-save .check { display: none; }
+  .btn-save.saved .check { display: inline; }
+  .btn-save.saved .label { display: none; }
+
+  .summary {
+    display: grid; grid-template-columns: repeat(auto-fit, minmax(155px, 1fr));
+    gap: .75rem; max-width: 1440px; margin: 0 auto 1.25rem;
+  }
+  .card {
+    background: #1e293b; border: 1px solid #334155; border-radius: .75rem;
+    padding: .75rem 1rem;
+  }
+  .card .lbl {
+    font-size: .6875rem; text-transform: uppercase; letter-spacing: .05em;
+    color: #64748b; margin-bottom: .125rem;
+  }
+  .card .val { font-size: 1.35rem; font-weight: 700; color: #f8fafc; }
+  .card .unit { font-size: .8125rem; font-weight: 400; color: #94a3b8; }
+  .card.highlight { border-color: #3b82f6; }
+  .card .sub { font-size: .6875rem; color: #64748b; margin-top: .15rem; }
+
+  .chart-wrap {
+    max-width: 1440px; margin: 0 auto 1.25rem;
+    background: #1e293b; border: 1px solid #334155; border-radius: .75rem;
+    padding: 1rem 1.25rem .75rem;
+    position: relative; height: 320px;
+  }
+
+  .table-wrap {
+    max-width: 1440px; margin: 0 auto;
+    background: #1e293b; border: 1px solid #334155; border-radius: .75rem;
+    overflow-x: auto;
+  }
+  table { width: 100%; border-collapse: collapse; font-size: .8125rem; white-space: nowrap; }
+  thead th {
+    position: sticky; top: 0; z-index: 1;
+    background: #1e293b; color: #94a3b8; font-weight: 600;
+    text-transform: uppercase; letter-spacing: .04em; font-size: .6875rem;
+    padding: .625rem .75rem; text-align: left; border-bottom: 2px solid #334155;
+  }
+  tbody td { padding: .5rem .75rem; border-bottom: 1px solid rgba(51,65,85,.4); color: #cbd5e1; }
+  tbody tr { background: #0f172a; }
+  tbody tr:nth-child(even) { background: #162032; }
+  tbody tr:hover { background: #1e3a5f; }
+
+  .pill { display: inline-block; padding: .1rem .4rem; border-radius: 9999px; font-size: .625rem; font-weight: 600; }
+  .pill-obs   { background: #422006; color: #fbbf24; }
+  .pill-fcst  { background: #172554; color: #93c5fd; }
+
+  .metar-raw {
+    font-family: 'SF Mono', 'Fira Code', Consolas, monospace;
+    font-size: .625rem; color: #64748b; max-width: 380px;
+    overflow: hidden; text-overflow: ellipsis;
+  }
+
+  .loading, .error { text-align: center; padding: 3rem; font-size: .875rem; }
+  .loading { color: #64748b; }
+  .error   { color: #f87171; }
+
+  .clock {
+    font-family: 'SF Mono', 'Fira Code', Consolas, monospace;
+    font-size: 1.1rem; font-weight: 600; color: #f8fafc;
+    letter-spacing: .03em;
+  }
+  .clock .tz-label {
+    font-size: .65rem; font-weight: 400; color: #64748b;
+    text-transform: uppercase; letter-spacing: .06em; margin-left: .35rem;
+  }
+
+  .source-note {
+    max-width: 1440px; margin: .75rem auto 0;
+    font-size: .6875rem; color: #475569; text-align: right;
+  }
+
+  .map-section {
+    max-width: 1440px; margin: 0 auto 1.25rem;
+    background: #1e293b; border: 1px solid #334155; border-radius: .75rem;
+    padding: .75rem 1rem .75rem;
+    overflow: hidden;
+  }
+  .map-header {
+    display: flex; align-items: center; justify-content: space-between;
+    margin-bottom: .5rem;
+  }
+  .map-header h3 {
+    font-size: .8125rem; font-weight: 600; color: #f8fafc;
+  }
+  .map-controls {
+    display: flex; align-items: center; gap: .5rem;
+  }
+  .map-controls button {
+    background: #334155; color: #e2e8f0; border: none; border-radius: .375rem;
+    width: 28px; height: 28px; font-size: .75rem; cursor: pointer;
+    display: flex; align-items: center; justify-content: center;
+  }
+  .map-controls button:hover { background: #475569; }
+  .map-controls button.active { background: #3b82f6; }
+  .map-timestamp {
+    font-family: 'SF Mono', 'Fira Code', Consolas, monospace;
+    font-size: .6875rem; color: #94a3b8;
+  }
+  #radarMap {
+    height: 340px; border-radius: .5rem;
+    background: #0f172a;
+  }
+  .leaflet-control-attribution { font-size: .55rem !important; }
+</style>
+</head>
+<body>
+
+<div class="header">
+  <div>
+    <h1 id="title">KSEA — Temperature Forecast
+      <span class="badge badge-gefs">GEFS</span>
+      <span class="badge badge-hrrr">HRRR</span>
+      <span class="badge badge-nam">NAM</span>
+      <span class="badge badge-twc">TWC</span>
+      <span class="badge badge-metar">METAR</span>
+    </h1>
+    <p id="subtitle">Loading&hellip;</p>
+    <div class="clock" id="clock"></div>
+  </div>
+  <div class="controls">
+    <label for="stationInput">Station</label>
+    <input type="text" id="stationInput" value="KSEA" style="width:5.5rem" maxlength="4">
+    <label for="dateInput">Date</label>
+    <input type="date" id="dateInput">
+    <button onclick="run()">Load</button>
+    <button class="btn-save" id="btnSave" onclick="savePredictions()" disabled>
+      <span class="label">Save Predictions</span>
+      <span class="check">Saved!</span>
+    </button>
+  </div>
+</div>
+
+<div class="summary" id="summary"></div>
+
+<div class="chart-wrap">
+  <canvas id="tempChart"></canvas>
+</div>
+
+<div class="map-section" id="mapSection" style="display:none">
+  <div class="map-header">
+    <h3>Precipitation Radar</h3>
+    <div class="map-controls">
+      <button id="btnPrev" title="Previous frame">&#9664;</button>
+      <button id="btnPlay" title="Play/Pause" class="active">&#9654;</button>
+      <button id="btnNext" title="Next frame">&#9654;</button>
+      <span class="map-timestamp" id="radarTime">—</span>
+    </div>
+  </div>
+  <div id="radarMap"></div>
+</div>
+
+<div class="table-wrap">
+  <div class="loading" id="loading">Loading&hellip;</div>
+  <table id="table" style="display:none">
+    <thead><tr>
+      <th>Hour</th>
+      <th>Source</th>
+      <th>Temp °F</th>
+      <th>HRRR</th>
+      <th>NAM</th>
+      <th>TWC</th>
+      <th>GEFS Med</th>
+      <th>GEFS P10</th>
+      <th>GEFS P90</th>
+      <th>Feels Like</th>
+      <th>Dew Pt</th>
+      <th>RH %</th>
+      <th>Wind</th>
+      <th>Conditions</th>
+      <th>METAR</th>
+    </tr></thead>
+    <tbody id="tbody"></tbody>
+  </table>
+</div>
+<div class="source-note" id="sourceNote"></div>
+
+<script>
+// ---------------------------------------------------------------------------
+// Station database — ICAO → lat/lon/tz/elevation/offset
+// Coordinates match polymarket_gefs.py (airport ICAO grid points)
+// ---------------------------------------------------------------------------
+const STATION_DB = {
+// Coordinates sourced from Weather.com (TWC) v3/location/point API
+  KSEA: { lat:47.4410, lon:-122.3000, tz:'America/Los_Angeles', elevM:132, slug:'seattle', offset:0 },
+  KORD: { lat:41.9770, lon:-87.9050,  tz:'America/Chicago',     elevM:205, slug:'chicago', offset:-4 },
+  KATL: { lat:33.6390, lon:-84.4050,  tz:'America/New_York',    elevM:313, slug:'atlanta', offset:0 },
+  KLAX: { lat:33.9600, lon:-118.4000, tz:'America/Los_Angeles', elevM:38,  slug:'la',      offset:0 },
+  KJFK: { lat:40.7050, lon:-73.7950,  tz:'America/New_York',    elevM:4,   slug:'nyc',     offset:0 },
+  KLGA: { lat:40.7610, lon:-73.8640,  tz:'America/New_York',    elevM:9,   slug:'nyc',     offset:0 },
+  KEWR: { lat:40.6910, lon:-74.1780,  tz:'America/New_York',    elevM:5,   slug:'nyc',     offset:0 },
+  KMIA: { lat:25.8480, lon:-80.2420,  tz:'America/New_York',    elevM:2.4, slug:'miami',   offset:0 },
+  KDFW: { lat:32.8970, lon:-97.0390,  tz:'America/Chicago',     elevM:183, slug:'dallas',  offset:0 },
+  KDAL: { lat:32.8460, lon:-96.8700,  tz:'America/Chicago',     elevM:145, slug:'dallas',  offset:0 },
+  KDEN: { lat:39.7840, lon:-104.7720, tz:'America/Denver',      elevM:1655,slug:'denver',  offset:0 },
+  KSFO: { lat:37.6160, lon:-122.3890, tz:'America/Los_Angeles', elevM:4,   slug:'san-francisco', offset:0 },
+  KBOS: { lat:42.3740, lon:-71.0390,  tz:'America/New_York',    elevM:6,   slug:'boston',   offset:0 },
+  KPHX: { lat:33.4470, lon:-112.0480, tz:'America/Phoenix',     elevM:346, slug:'phoenix',  offset:0 },
+  KLAS: { lat:36.1040, lon:-115.1370, tz:'America/Los_Angeles', elevM:664, slug:'las-vegas', offset:0 },
+  KPDX: { lat:45.5580, lon:-122.6200, tz:'America/Los_Angeles', elevM:6,   slug:'portland', offset:0 },
+  KMSP: { lat:44.8840, lon:-93.2100,  tz:'America/Chicago',     elevM:256, slug:'minneapolis', offset:0 },
+  KDTW: { lat:42.2290, lon:-83.3440,  tz:'America/Detroit',     elevM:196, slug:'detroit',  offset:0 },
+  KPHL: { lat:39.8750, lon:-75.2560,  tz:'America/New_York',    elevM:9,   slug:'philadelphia', offset:0 },
+  KSAN: { lat:32.7450, lon:-117.1990, tz:'America/Los_Angeles', elevM:5,   slug:'san-diego', offset:0 },
+  KMCO: { lat:28.3720, lon:-81.2780,  tz:'America/New_York',    elevM:29,  slug:'orlando',  offset:0 },
+  KSLC: { lat:40.7770, lon:-111.9810, tz:'America/Denver',      elevM:1288,slug:'salt-lake-city', offset:0 },
+  KAUS: { lat:30.1620, lon:-97.6890,  tz:'America/Chicago',     elevM:163, slug:'austin',   offset:0 },
+  KBNA: { lat:36.1150, lon:-86.6940,  tz:'America/Chicago',     elevM:180, slug:'nashville', offset:0 },
+  KIAH: { lat:29.9390, lon:-95.3310,  tz:'America/Chicago',     elevM:30,  slug:'houston',  offset:0 },
+  KDCA: { lat:38.8560, lon:-77.0520,  tz:'America/New_York',    elevM:4,   slug:'washington-dc', offset:0 },
+  KIAD: { lat:39.0070, lon:-77.4380,  tz:'America/New_York',    elevM:95,  slug:'washington-dc', offset:0 },
+  KTPA: { lat:27.9570, lon:-82.4830,  tz:'America/New_York',    elevM:8,   slug:'tampa',    offset:0 },
+  KCLT: { lat:35.2210, lon:-80.9440,  tz:'America/New_York',    elevM:228, slug:'charlotte', offset:0 },
+  KMKE: { lat:42.9490, lon:-87.9030,  tz:'America/Chicago',     elevM:211, slug:'milwaukee', offset:0 },
+  KSTL: { lat:38.7560, lon:-90.4210,  tz:'America/Chicago',     elevM:184, slug:'st-louis', offset:0 },
+  KMCI: { lat:39.2510, lon:-94.6620,  tz:'America/Chicago',     elevM:313, slug:'kansas-city', offset:0 },
+  KRDU: { lat:35.8250, lon:-78.8290,  tz:'America/New_York',    elevM:127, slug:'raleigh',  offset:0 },
+  KPIT: { lat:40.5050, lon:-80.2380,  tz:'America/New_York',    elevM:368, slug:'pittsburgh', offset:0 },
+  KBUF: { lat:42.9190, lon:-78.7520,  tz:'America/New_York',    elevM:215, slug:'buffalo',  offset:0 },
+  PANC: { lat:61.1820, lon:-149.9350, tz:'America/Anchorage',   elevM:46,  slug:'anchorage', offset:0 },
+  PHNL: { lat:21.3350, lon:-157.8810, tz:'Pacific/Honolulu',    elevM:4,   slug:'honolulu', offset:0 },
+};
+
+// Timezone lookup by US longitude bands (fallback for unknown stations)
+function guessTZ(lon) {
+  if (lon < -150) return 'Pacific/Honolulu';
+  if (lon < -135) return 'America/Anchorage';
+  if (lon < -115) return 'America/Los_Angeles';
+  if (lon < -100) return 'America/Denver';
+  if (lon < -87)  return 'America/Chicago';
+  return 'America/New_York';
+}
+
+async function lookupStation(icao) {
+  const url = `https://aviationweather.gov/api/data/stationinfo?ids=${icao}&format=json`;
+  const res = await fetch(proxy(url));
+  if (!res.ok) return null;
+  const data = await res.json();
+  if (!Array.isArray(data) || !data.length) return null;
+  const s = data[0];
+  return {
+    lat: s.lat, lon: s.lon, elevM: s.elev,
+    tz: guessTZ(s.lon), slug: icao.toLowerCase(), offset: 0,
+  };
+}
+
+// ---------------------------------------------------------------------------
+// METAR parser (same logic as standalone / comparison)
+// ---------------------------------------------------------------------------
+const CARDINAL = ['N','NNE','NE','ENE','E','ESE','SE','SSE','S','SSW','SW','WSW','W','WNW','NW','NNW'];
+function degToCardinal(d) { return d == null ? null : CARDINAL[Math.round(d / 22.5) % 16]; }
+
+let _parseRefDate = new Date();
+function setParseRefDate(d) { _parseRefDate = d; }
+
+function parseMetar(raw) {
+  const m = { raw, type:null, station:null, timeUtc:null,
+    windDir:null, windKt:null, gustKt:null, visSm:null,
+    wxCodes:[], clouds:[], tempC:null, dewpC:null,
+    tempPrecC:null, dewpPrecC:null, altInhg:null, slpHpa:null, precip1hr:null };
+  const tok = raw.trim().split(/\s+/);
+  let i = 0;
+  if (tok[i]==='METAR'||tok[i]==='SPECI') { m.type=tok[i]; i++; }
+  if (i<tok.length && /^[A-Z]{4}$/.test(tok[i])) { m.station=tok[i]; i++; }
+  let tm = i<tok.length && tok[i].match(/^(\d{2})(\d{2})(\d{2})Z$/);
+  if (tm) {
+    const ref=_parseRefDate;
+    const d=new Date(Date.UTC(ref.getUTCFullYear(),ref.getUTCMonth(),+tm[1],+tm[2],+tm[3]));
+    if (d>new Date(ref.getTime()+86400000)) d.setUTCMonth(d.getUTCMonth()-1);
+    m.timeUtc=d; i++;
+  }
+  if (i<tok.length && tok[i]==='AUTO') i++;
+  let wm = i<tok.length && tok[i].match(/^(VRB|\d{3})(\d{2,3})(G(\d{2,3}))?KT$/);
+  if (wm) { m.windDir=wm[1]==='VRB'?null:+wm[1]; m.windKt=+wm[2]; m.gustKt=wm[4]?+wm[4]:null; i++; }
+  if (i<tok.length && /^\d{3}V\d{3}$/.test(tok[i])) i++;
+  if (i<tok.length) {
+    if (tok[i]==='M1/4SM') { m.visSm=0.25; i++; }
+    else { let vm=tok[i].match(/^(\d+)SM$/); let fm=tok[i].match(/^(\d+)\/(\d+)SM$/);
+      if (vm){m.visSm=+vm[1];i++;} else if(fm){m.visSm=+fm[1]/+fm[2];i++;} }
+  }
+  const wxRe=/^([+-]|VC)?(MI|BC|PR|DR|BL|SH|TS|FZ)?(DZ|RA|SN|SG|IC|PL|GR|GS|UP|BR|FG|FU|VA|DU|SA|HZ|PY|PO|SQ|FC|SS|DS)$/;
+  const cldRe=/^(FEW|SCT|BKN|OVC|CLR|SKC|VV)(\d{3})?$/;
+  const tdRe=/^(M?\d{1,2})\/(M?\d{1,2})?$/;
+  const altRe=/^A(\d{4})$/;
+  while (i<tok.length && tok[i]!=='RMK') {
+    let t=tok[i];
+    let wm2=t.match(wxRe);
+    if (wm2) { let int=wm2[1]||''; let vic=int==='VC'; if(vic)int='';
+      m.wxCodes.push({intensity:int,desc:wm2[2]||'',phenom:wm2[3]||'',vicinity:vic}); i++; continue; }
+    let cm=t.match(cldRe);
+    if (cm) { m.clouds.push({cover:cm[1],baseFt:cm[2]?+cm[2]*100:null}); i++; continue; }
+    let tdm=t.match(tdRe);
+    if (tdm) { m.tempC=tdm[1].startsWith('M')?-parseInt(tdm[1].slice(1)):+tdm[1];
+      if(tdm[2]) m.dewpC=tdm[2].startsWith('M')?-parseInt(tdm[2].slice(1)):+tdm[2]; i++; continue; }
+    let am=t.match(altRe);
+    if (am) { m.altInhg=+am[1]/100; i++; continue; }
+    i++;
+  }
+  let rmkIdx=tok.indexOf('RMK');
+  if (rmkIdx>=0) {
+    const rmk=tok.slice(rmkIdx+1).join(' ');
+    let tg=rmk.match(/T(\d)(\d{3})(\d)(\d{3})/);
+    if (tg) { m.tempPrecC=(+tg[2]/10)*(tg[1]==='1'?-1:1); m.dewpPrecC=(+tg[4]/10)*(tg[3]==='1'?-1:1); }
+    let sl=rmk.match(/SLP(\d{3})/);
+    if (sl) { let v=+sl[1]; m.slpHpa=v<500?1000+v/10:900+v/10; }
+    let p1=rmk.match(/P(\d{4})/);
+    if (p1) m.precip1hr=+p1[1]/100;
+  }
+  return m;
+}
+
+// ---------------------------------------------------------------------------
+// Conversions
+// ---------------------------------------------------------------------------
+function cToF(c) { return c==null?null:Math.round(c*9/5+32); }
+function ktToMph(k) { return k==null?null:Math.round(k*1.15078); }
+function altToStation(alt,elevM) {
+  if (alt==null||elevM==null) return null;
+  return Math.round(alt*Math.pow((288.15-0.0065*elevM)/288.15,5.2559)*100)/100;
+}
+function calcRH(tC,dC) {
+  if (tC==null||dC==null) return null;
+  const a=17.625,b=243.04;
+  return Math.round(Math.min(100,Math.max(0,100*Math.exp(a*dC/(b+dC))/Math.exp(a*tC/(b+tC)))));
+}
+function calcWC(tF,mph) {
+  if (tF==null||mph==null||tF>50||mph<=3) return null;
+  return Math.round(35.74+0.6215*tF-35.75*Math.pow(mph,0.16)+0.4275*tF*Math.pow(mph,0.16));
+}
+function calcFeels(tF,mph) { return calcWC(tF,mph) ?? tF; }
+
+const WX_PHENOM={DZ:'Drizzle',RA:'Rain',SN:'Snow',SG:'Snow Grains',IC:'Ice Crystals',
+  PL:'Ice Pellets',GR:'Hail',GS:'Small Hail',UP:'Unknown Precip',
+  BR:'Mist',FG:'Fog',FU:'Smoke',HZ:'Haze',DU:'Dust',SA:'Sand'};
+const WX_INT={'-':'Light','+':'Heavy','':''};
+
+function skyCover(clouds) {
+  const pri={OVC:4,BKN:3,SCT:2,FEW:1,VV:4,CLR:0,SKC:0};
+  let best='CLR';
+  for (const c of clouds) if ((pri[c.cover]||0)>(pri[best]||0)) best=c.cover;
+  return best;
+}
+function wxPhrase(parsed,mph) {
+  let phrase;
+  if (parsed.wxCodes.length) {
+    const parts=parsed.wxCodes.map(wx=>{
+      let p=[]; let int=WX_INT[wx.intensity]||''; if(int) p.push(int);
+      if(wx.desc==='FZ') p.push('Freezing');
+      else if(wx.desc==='TS') p.push('Thunderstorm');
+      else if(wx.desc==='SH'&&!wx.phenom) p.push('Showers');
+      if(wx.phenom&&WX_PHENOM[wx.phenom]){
+        let ph=WX_PHENOM[wx.phenom];
+        if(wx.desc==='SH'&&wx.phenom==='RA') ph='Rain Showers';
+        else if(wx.desc==='SH'&&wx.phenom==='SN') ph='Snow Showers';
+        else if(wx.desc==='FZ'&&wx.phenom==='RA') ph='Freezing Rain';
+        else if(wx.desc==='FZ'&&wx.phenom==='DZ') ph='Freezing Drizzle';
+        p.push(ph);
+      }
+      return wx.vicinity?p.join(' ')+' in Vicinity':p.join(' ');
+    });
+    phrase=parts.length<=2?parts.join(' and '):parts[0];
+  } else {
+    const sky=skyCover(parsed.clouds);
+    const map={OVC:'Cloudy',BKN:'Mostly Cloudy',SCT:'Partly Cloudy',
+      FEW:'Mostly Clear',CLR:'Clear',SKC:'Clear',VV:'Cloudy'};
+    phrase=map[sky]||'Fair';
+  }
+  if (mph!=null&&mph>=22) phrase+=' / Windy';
+  return phrase;
+}
+
+function toObs(parsed, elevM) {
+  const tC=parsed.tempPrecC??parsed.tempC, dC=parsed.dewpPrecC??parsed.dewpC;
+  const tF=cToF(tC), dF=cToF(dC);
+  const mph=ktToMph(parsed.windKt), gust=ktToMph(parsed.gustKt);
+  const rh=calcRH(tC,dC), feels=calcFeels(tF,mph);
+  const pres=altToStation(parsed.altInhg,elevM);
+  const epoch=parsed.timeUtc?Math.floor(parsed.timeUtc.getTime()/1000):null;
+  return {
+    epoch, temp:tF, dewPt:dF, rh, wspd:mph, gust,
+    pressure:pres, vis:parsed.visSm, feels_like:feels,
+    wx_phrase:wxPhrase(parsed,mph),
+    clds:skyCover(parsed.clouds)==='CLR'||skyCover(parsed.clouds)==='SKC'?'CLR':skyCover(parsed.clouds),
+    wdir_cardinal:degToCardinal(parsed.windDir), raw:parsed.raw,
+  };
+}
+
+// ---------------------------------------------------------------------------
+// Fetch helpers
+// ---------------------------------------------------------------------------
+function proxy(url) { return '/proxy?url='+encodeURIComponent(url); }
+
+function isToday(dateStr) {
+  const n=new Date();
+  return dateStr===`${n.getFullYear()}-${String(n.getMonth()+1).padStart(2,'0')}-${String(n.getDate()).padStart(2,'0')}`;
+}
+function fmtDateISO(d) {
+  return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+}
+
+async function fetchMetars(station, dateStr) {
+  if (isToday(dateStr)) {
+    const url=`https://aviationweather.gov/api/data/metar?ids=${station}&hours=24&format=raw`;
+    const res=await fetch(proxy(url));
+    if (!res.ok) throw new Error(`METAR: HTTP ${res.status}`);
+    return (await res.text()).trim().split('\n').filter(l=>l.trim());
+  }
+  const iemSt=station.startsWith('K')?station.slice(1):station;
+  const [y,m,d]=dateStr.split('-');
+  const end=new Date(+y,+m-1,+d+2);
+  const url=`https://mesonet.agron.iastate.edu/cgi-bin/request/asos.py`
+    +`?station=${iemSt}&data=metar&tz=Etc/UTC&format=onlycomma&latlon=no&elev=no`
+    +`&year1=${y}&month1=${+m}&day1=${+d}&year2=${end.getFullYear()}&month2=${end.getMonth()+1}&day2=${end.getDate()}`;
+  const res=await fetch(proxy(url));
+  if (!res.ok) throw new Error(`IEM: HTTP ${res.status}`);
+  const lines=(await res.text()).trim().split('\n');
+  const metars=lines.slice(1)
+    .map(l=>{const c=l.split(',');return c.length>=3?c.slice(2).join(',').trim():'';})
+    .filter(l=>l&&/^(METAR|SPECI|[A-Z]{4})\s/.test(l))
+    .filter(l=>!l.includes('MADISHF'));
+  const seen=new Set();
+  return metars.filter(l=>{const m=l.match(/\d{6}Z/);if(!m)return true;if(seen.has(m[0]))return false;seen.add(m[0]);return true;});
+}
+
+// ---------------------------------------------------------------------------
+// GEFS ensemble fetch (mirrors polymarket_gefs.py)
+// ---------------------------------------------------------------------------
+async function fetchGEFS(lat, lon, tz, dateStr) {
+  const d = new Date(dateStr + 'T12:00:00');
+  const start = new Date(d); start.setDate(start.getDate() - 1);
+  const end   = new Date(d); end.setDate(end.getDate() + 1);
+  const url = `https://ensemble-api.open-meteo.com/v1/ensemble`
+    + `?latitude=${lat.toFixed(4)}&longitude=${lon.toFixed(4)}`
+    + `&hourly=temperature_2m&models=gfs_seamless`
+    + `&timezone=${encodeURIComponent(tz)}`
+    + `&start_date=${fmtDateISO(start)}&end_date=${fmtDateISO(end)}`;
+  const res = await fetch(proxy(url));
+  if (!res.ok) throw new Error(`GEFS: HTTP ${res.status}`);
+  return await res.json();
+}
+
+// ---------------------------------------------------------------------------
+// Weather.com (TWC) blended model forecast — 48hr hourly
+// ---------------------------------------------------------------------------
+const TWC_KEY = 'e1f10a1e78da46f5b10a1e78da96f525';
+
+async function fetchTWC(lat, lon, tz, dateStr) {
+  const url = `https://api.weather.com/v1/geocode/${lat.toFixed(4)}/${lon.toFixed(4)}`
+    + `/forecast/hourly/48hour.json?apiKey=${TWC_KEY}&units=e&language=en-US`;
+  const res = await fetch(proxy(url));
+  if (!res.ok) throw new Error(`TWC forecast: HTTP ${res.status}`);
+  const data = await res.json();
+  return data.forecasts || [];
+}
+
+function processTWC(forecasts, dateStr, tz) {
+  const hourlyTemps = {};
+  let dailyMax = -Infinity;
+  for (const f of forecasts) {
+    if (!f.fcst_valid) continue;
+    const localDate = new Date(f.fcst_valid * 1000)
+      .toLocaleDateString('en-CA', { timeZone: tz });
+    if (localDate !== dateStr) continue;
+    const hr = parseInt(new Date(f.fcst_valid * 1000)
+      .toLocaleString('en-US', { timeZone: tz, hour: 'numeric', hour12: false }), 10);
+    hourlyTemps[hr] = f.temp;
+    if (f.temp > dailyMax) dailyMax = f.temp;
+  }
+  if (!Object.keys(hourlyTemps).length) return null;
+  return { hourlyTemps, predictedHigh: Math.round(dailyMax) };
+}
+
+// ---------------------------------------------------------------------------
+// HRRR deterministic fetch (3km CONUS, hourly updates, 18-48hr horizon)
+// ---------------------------------------------------------------------------
+async function fetchHRRR(lat, lon, tz, dateStr) {
+  const d = new Date(dateStr + 'T12:00:00');
+  const start = new Date(d); start.setDate(start.getDate() - 1);
+  const end   = new Date(d); end.setDate(end.getDate() + 1);
+  const url = `https://api.open-meteo.com/v1/forecast`
+    + `?latitude=${lat.toFixed(4)}&longitude=${lon.toFixed(4)}`
+    + `&hourly=temperature_2m&models=gfs_hrrr`
+    + `&timezone=${encodeURIComponent(tz)}`
+    + `&start_date=${fmtDateISO(start)}&end_date=${fmtDateISO(end)}`;
+  const res = await fetch(proxy(url));
+  if (!res.ok) throw new Error(`HRRR: HTTP ${res.status}`);
+  return await res.json();
+}
+
+async function fetchNAM(lat, lon, tz, dateStr) {
+  const d = new Date(dateStr + 'T12:00:00');
+  const start = new Date(d); start.setDate(start.getDate() - 1);
+  const end   = new Date(d); end.setDate(end.getDate() + 1);
+  const url = `https://api.open-meteo.com/v1/forecast`
+    + `?latitude=${lat.toFixed(4)}&longitude=${lon.toFixed(4)}`
+    + `&hourly=temperature_2m&models=ncep_nam_conus`
+    + `&timezone=${encodeURIComponent(tz)}`
+    + `&start_date=${fmtDateISO(start)}&end_date=${fmtDateISO(end)}`;
+  const res = await fetch(proxy(url));
+  if (!res.ok) throw new Error(`NAM: HTTP ${res.status}`);
+  return await res.json();
+}
+
+function processHRRR(data, dateStr, offset) {
+  const hourly = data.hourly || {};
+  const times = hourly.time || [];
+  const temps = hourly.temperature_2m || [];
+  if (!temps.length) return null;
+
+  const hourlyTemps = {};
+  let dailyMax = -Infinity;
+  for (let i = 0; i < times.length; i++) {
+    if (!times[i].startsWith(dateStr)) continue;
+    if (temps[i] == null) continue;
+    const tF = Math.round((temps[i] * 9 / 5 + 32 + offset) * 10) / 10;
+    const hr = parseInt(times[i].split('T')[1].split(':')[0], 10);
+    hourlyTemps[hr] = tF;
+    if (tF > dailyMax) dailyMax = tF;
+  }
+  if (!Object.keys(hourlyTemps).length) return null;
+
+  return {
+    hourlyTemps,
+    predictedHigh: Math.round(dailyMax),
+    gridLat: data.latitude,
+    gridLon: data.longitude,
+  };
+}
+
+function pctile(sorted, p) {
+  if (!sorted.length) return null;
+  const i = (p / 100) * (sorted.length - 1);
+  const lo = Math.floor(i), hi = Math.ceil(i);
+  return lo === hi ? sorted[lo] : sorted[lo] + (sorted[hi] - sorted[lo]) * (i - lo);
+}
+
+function processGEFS(data, dateStr, offset) {
+  const hourly = data.hourly || {};
+  const times = hourly.time || [];
+
+  const members = [];
+  if (hourly.temperature_2m) members.push(hourly.temperature_2m);
+  for (let i = 1; i <= 30; i++) {
+    const key = `temperature_2m_member${String(i).padStart(2, '0')}`;
+    if (hourly[key]) members.push(hourly[key]);
+  }
+  if (!members.length) return null;
+
+  // Hourly stats for the target date
+  const hourlyStats = [];
+  for (let ti = 0; ti < times.length; ti++) {
+    if (!times[ti].startsWith(dateStr)) continue;
+    const vals = members.map(m => m[ti]).filter(v => v != null)
+      .map(c => c * 9 / 5 + 32 + offset).sort((a, b) => a - b);
+    if (!vals.length) continue;
+    const hr = parseInt(times[ti].split('T')[1].split(':')[0], 10);
+    hourlyStats.push({
+      hour: hr,
+      mean:  Math.round(vals.reduce((s, v) => s + v, 0) / vals.length * 10) / 10,
+      p10:   Math.round(pctile(vals, 10) * 10) / 10,
+      p25:   Math.round(pctile(vals, 25) * 10) / 10,
+      p50:   Math.round(pctile(vals, 50) * 10) / 10,
+      p75:   Math.round(pctile(vals, 75) * 10) / 10,
+      p90:   Math.round(pctile(vals, 90) * 10) / 10,
+      min:   Math.round(vals[0] * 10) / 10,
+      max:   Math.round(vals[vals.length - 1] * 10) / 10,
+    });
+  }
+
+  // Daily high per member
+  const dayIdxs = times.map((t, i) => t.startsWith(dateStr) ? i : -1).filter(i => i >= 0);
+  const memberHighs = members.map(m => {
+    const dv = dayIdxs.map(i => m[i]).filter(v => v != null);
+    return dv.length ? Math.round(Math.max(...dv) * 9 / 5 + 32 + offset) : null;
+  }).filter(v => v != null).sort((a, b) => a - b);
+
+  return {
+    hourlyStats,
+    memberHighs,
+    nMembers: members.length,
+    gridLat: data.latitude,
+    gridLon: data.longitude,
+  };
+}
+
+// ---------------------------------------------------------------------------
+// Rendering
+// ---------------------------------------------------------------------------
+function localHour(epoch, tz) {
+  return parseInt(new Date(epoch * 1000).toLocaleString('en-US', { timeZone: tz, hour: 'numeric', hour12: false }), 10);
+}
+function localDateStr(epoch, tz) {
+  return new Date(epoch * 1000).toLocaleDateString('en-CA', { timeZone: tz });
+}
+
+const HOUR_LABELS = Array.from({ length: 24 }, (_, h) => {
+  const ampm = h < 12 ? 'AM' : 'PM';
+  const h12 = h === 0 ? 12 : h > 12 ? h - 12 : h;
+  return `${h12} ${ampm}`;
+});
+
+let chartInstance = null;
+
+function renderChart(obsByHour, gefs, hrrr, nam, twc, nowHour, isDateToday) {
+  const ctx = document.getElementById('tempChart').getContext('2d');
+  if (chartInstance) chartInstance.destroy();
+
+  const obsTemp = HOUR_LABELS.map((_, h) => obsByHour[h]?.temp ?? null);
+  const obsFeels = HOUR_LABELS.map((_, h) => obsByHour[h]?.feels_like ?? null);
+  const obsDew = HOUR_LABELS.map((_, h) => obsByHour[h]?.dewPt ?? null);
+
+  const gefsMap = {};
+  if (gefs) for (const g of gefs.hourlyStats) gefsMap[g.hour] = g;
+  const gP90  = HOUR_LABELS.map((_, h) => gefsMap[h]?.p90 ?? null);
+  const gP75  = HOUR_LABELS.map((_, h) => gefsMap[h]?.p75 ?? null);
+  const gP50  = HOUR_LABELS.map((_, h) => gefsMap[h]?.p50 ?? null);
+  const gP25  = HOUR_LABELS.map((_, h) => gefsMap[h]?.p25 ?? null);
+  const gP10  = HOUR_LABELS.map((_, h) => gefsMap[h]?.p10 ?? null);
+
+  const hrrrData = HOUR_LABELS.map((_, h) => hrrr?.hourlyTemps[h] ?? null);
+  const namData  = HOUR_LABELS.map((_, h) => nam?.hourlyTemps[h] ?? null);
+  const twcData  = HOUR_LABELS.map((_, h) => twc?.hourlyTemps[h] ?? null);
+
+  const gridColor = 'rgba(51,65,85,.35)';
+  const tickColor = '#64748b';
+
+  const datasets = [
+    { label: '_p90', data: gP90, borderWidth: 0, pointRadius: 0, fill: false },
+    { label: 'GEFS P10–P90', data: gP10, borderWidth: 0, pointRadius: 0,
+      fill: '-1', backgroundColor: 'rgba(59,130,246,0.10)' },
+    { label: '_p75', data: gP75, borderWidth: 0, pointRadius: 0, fill: false },
+    { label: 'GEFS P25–P75', data: gP25, borderWidth: 0, pointRadius: 0,
+      fill: '-1', backgroundColor: 'rgba(59,130,246,0.18)' },
+    { label: 'GEFS Median', data: gP50,
+      borderColor: '#3b82f6', borderWidth: 2, borderDash: [6, 3],
+      pointRadius: 0, tension: 0.3, fill: false },
+    { label: 'HRRR 3km', data: hrrrData,
+      borderColor: '#22c55e', borderWidth: 2,
+      pointRadius: 0, tension: 0.3, fill: false },
+    { label: 'NAM 3km', data: namData,
+      borderColor: '#a855f7', borderWidth: 2, borderDash: [8, 4],
+      pointRadius: 0, tension: 0.3, fill: false },
+    { label: 'TWC Blend', data: twcData,
+      borderColor: '#f97316', borderWidth: 2,
+      pointRadius: 0, tension: 0.3, fill: false },
+    { label: 'Observed Temp', data: obsTemp,
+      borderColor: '#f59e0b', backgroundColor: 'rgba(245,158,11,.1)',
+      borderWidth: 2.5, pointRadius: 3, pointBackgroundColor: '#f59e0b',
+      tension: 0.3, fill: false },
+    { label: 'Feels Like', data: obsFeels,
+      borderColor: '#ef4444', borderWidth: 1.5, borderDash: [5, 3],
+      pointRadius: 2, pointBackgroundColor: '#ef4444', tension: 0.3, fill: false },
+    { label: 'Dew Point', data: obsDew,
+      borderColor: '#06b6d4', borderWidth: 1.5,
+      pointRadius: 2, pointBackgroundColor: '#06b6d4', tension: 0.3, fill: false },
+  ];
+
+  const annotations = {};
+  if (isDateToday && nowHour >= 0 && nowHour < 24) {
+    annotations.nowLine = {
+      type: 'line', xMin: nowHour, xMax: nowHour,
+      borderColor: 'rgba(248,250,252,0.25)', borderWidth: 1, borderDash: [4, 4],
+      label: { content: 'Now', display: true, position: 'start',
+        color: '#94a3b8', font: { size: 10, weight: 'bold' },
+        backgroundColor: 'rgba(15,23,42,0.8)', padding: 3 },
+    };
+  }
+
+  chartInstance = new Chart(ctx, {
+    type: 'line',
+    data: { labels: HOUR_LABELS, datasets },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      interaction: { mode: 'index', intersect: false },
+      plugins: {
+        legend: {
+          labels: {
+            color: '#94a3b8', font: { size: 11 },
+            usePointStyle: true, pointStyleWidth: 12, padding: 14,
+            filter: item => !item.text.startsWith('_'),
+          },
+        },
+        tooltip: {
+          backgroundColor: '#1e293b', titleColor: '#f8fafc', bodyColor: '#cbd5e1',
+          borderColor: '#334155', borderWidth: 1, padding: 10,
+          callbacks: {
+            label: ctx => {
+              if (ctx.dataset.label.startsWith('_')) return null;
+              const v = ctx.parsed.y;
+              return v != null ? `${ctx.dataset.label}: ${v.toFixed(1)}°F` : null;
+            },
+          },
+        },
+        annotation: { annotations },
+      },
+      scales: {
+        x: { ticks: { color: tickColor, font: { size: 10 }, maxRotation: 45 }, grid: { color: gridColor } },
+        y: { ticks: { color: tickColor, font: { size: 10 }, callback: v => v + '°' }, grid: { color: gridColor } },
+      },
+    },
+  });
+}
+
+function renderSummary(obsAll, gefs, hrrr, nam, twc) {
+  const temps = obsAll.map(o => o.temp).filter(t => t != null);
+  const latest = obsAll.length ? obsAll[obsAll.length - 1] : null;
+
+  const cards = [];
+  if (latest && latest.temp != null) {
+    cards.push({ lbl: 'Current Temp', val: latest.temp, unit: '°F', sub: latest.wx_phrase, cls: '' });
+  }
+  cards.push({ lbl: 'Observed High', val: temps.length ? Math.max(...temps) : '—', unit: temps.length ? '°F' : '', sub: `${obsAll.length} obs`, cls: '' });
+
+  if (hrrr) {
+    cards.push({ lbl: 'HRRR High', val: hrrr.predictedHigh, unit: '°F',
+      sub: '3km hourly refresh', cls: 'highlight' });
+  }
+  if (nam) {
+    cards.push({ lbl: 'NAM High', val: nam.predictedHigh, unit: '°F',
+      sub: '3km 4× daily', cls: '' });
+  }
+  if (twc) {
+    cards.push({ lbl: 'TWC High', val: twc.predictedHigh, unit: '°F',
+      sub: 'blended model', cls: '' });
+  }
+
+  if (gefs && gefs.memberHighs.length) {
+    const highs = gefs.memberHighs;
+    const meanH = Math.round(highs.reduce((s, v) => s + v, 0) / highs.length);
+    const p10H = Math.round(pctile(highs, 10));
+    const p50H = Math.round(pctile(highs, 50));
+    const p90H = Math.round(pctile(highs, 90));
+    cards.push({ lbl: 'GEFS High', val: p50H, unit: '°F',
+      sub: `mean ${meanH}°F · ${gefs.nMembers} members`, cls: '' });
+    cards.push({ lbl: 'P10 – P90 Range', val: `${p10H}–${p90H}`, unit: '°F',
+      sub: `spread ${p90H - p10H}°`, cls: '' });
+  }
+
+  document.getElementById('summary').innerHTML = cards.map(c => `
+    <div class="card ${c.cls}">
+      <div class="lbl">${c.lbl}</div>
+      <div class="val">${c.val} <span class="unit">${c.unit}</span></div>
+      ${c.sub ? `<div class="sub">${c.sub}</div>` : ''}
+    </div>`).join('');
+}
+
+function renderTable(obsByHour, gefs, hrrr, nam, twc, tz) {
+  const gefsMap = {};
+  if (gefs) for (const g of gefs.hourlyStats) gefsMap[g.hour] = g;
+  const hrrrMap = hrrr?.hourlyTemps || {};
+  const namMap  = nam?.hourlyTemps || {};
+  const twcMap  = twc?.hourlyTemps || {};
+
+  const rows = [];
+  for (let h = 0; h < 24; h++) {
+    const o = obsByHour[h];
+    const g = gefsMap[h];
+    const hr = hrrrMap[h];
+    const nm = namMap[h];
+    const tw = twcMap[h];
+    if (!o && !g && hr == null && nm == null && tw == null) continue;
+
+    const src = o ? '<span class="pill pill-obs">OBS</span>'
+      : '<span class="pill pill-fcst">FCST</span>';
+    const temp = o ? `<strong>${o.temp ?? '—'}</strong>` : (hr != null ? `<em>${Math.round(hr)}</em>` : (g ? `<em>${Math.round(g.p50)}</em>` : '—'));
+    rows.push(`<tr>
+      <td>${HOUR_LABELS[h]}</td>
+      <td>${src}</td>
+      <td>${temp}</td>
+      <td>${hr != null ? Math.round(hr) : '—'}</td>
+      <td>${nm != null ? Math.round(nm) : '—'}</td>
+      <td>${tw != null ? Math.round(tw) : '—'}</td>
+      <td>${g ? Math.round(g.p50) : '—'}</td>
+      <td>${g ? Math.round(g.p10) : '—'}</td>
+      <td>${g ? Math.round(g.p90) : '—'}</td>
+      <td>${o ? (o.feels_like ?? '—') : '—'}</td>
+      <td>${o ? (o.dewPt ?? '—') : '—'}</td>
+      <td>${o ? (o.rh ?? '—') : '—'}</td>
+      <td>${o ? `${o.wdir_cardinal ?? ''} ${o.wspd ?? '—'} mph` : '—'}</td>
+      <td>${o ? (o.wx_phrase || '—') : '—'}</td>
+      <td class="metar-raw">${o ? o.raw : '—'}</td>
+    </tr>`);
+  }
+
+  document.getElementById('tbody').innerHTML = rows.join('');
+  document.getElementById('loading').style.display = 'none';
+  document.getElementById('table').style.display = '';
+}
+
+// ---------------------------------------------------------------------------
+// Save predictions
+// ---------------------------------------------------------------------------
+let _lastSnapshot = null;
+
+async function savePredictions() {
+  if (!_lastSnapshot) return;
+  const btn = document.getElementById('btnSave');
+  btn.disabled = true;
+  btn.textContent = 'Saving…';
+  try {
+    const res = await fetch('/save-prediction', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(_lastSnapshot),
+    });
+    const result = await res.json();
+    if (result.ok) {
+      btn.innerHTML = '<span class="check">Saved!</span>';
+      btn.classList.add('saved');
+      setTimeout(() => {
+        btn.innerHTML = '<span class="label">Save Predictions</span><span class="check">Saved!</span>';
+        btn.classList.remove('saved');
+        btn.disabled = false;
+      }, 2000);
+    } else {
+      btn.textContent = 'Error';
+      btn.disabled = false;
+    }
+  } catch (e) {
+    console.error('Save failed:', e);
+    btn.textContent = 'Error';
+    setTimeout(() => {
+      btn.innerHTML = '<span class="label">Save Predictions</span><span class="check">Saved!</span>';
+      btn.disabled = false;
+    }, 2000);
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Main
+// ---------------------------------------------------------------------------
+async function run() {
+  const station = document.getElementById('stationInput').value.toUpperCase().trim();
+  const dateStr = document.getElementById('dateInput').value;
+  const loading = document.getElementById('loading');
+  const table = document.getElementById('table');
+
+  if (!dateStr) { loading.textContent = 'Please select a date.'; return; }
+
+  loading.style.display = ''; loading.className = 'loading';
+  loading.textContent = 'Fetching METAR + GEFS + HRRR + NAM + TWC…';
+  table.style.display = 'none';
+  document.getElementById('summary').innerHTML = '';
+
+  let info = STATION_DB[station];
+  if (!info) {
+    loading.textContent = `Looking up station ${station}…`;
+    info = await lookupStation(station);
+    if (info) STATION_DB[station] = info;
+  }
+  const elevM = info?.elevM ?? null;
+  const tz = info?.tz ?? 'America/Los_Angeles';
+  const offset = info?.offset ?? 0;
+
+  let obsAll = [];
+  let gefs = null;
+  let hrrr = null;
+  let nam = null;
+  let twc = null;
+
+  // Fetch METAR + GEFS + HRRR + NAM + TWC in parallel
+  const metarP = fetchMetars(station, dateStr).catch(e => { console.warn('METAR error:', e); return []; });
+  const gefsP = info
+    ? fetchGEFS(info.lat, info.lon, tz, dateStr).catch(e => { console.warn('GEFS error:', e); return null; })
+    : Promise.resolve(null);
+  const hrrrP = info
+    ? fetchHRRR(info.lat, info.lon, tz, dateStr).catch(e => { console.warn('HRRR error:', e); return null; })
+    : Promise.resolve(null);
+  const namP = info
+    ? fetchNAM(info.lat, info.lon, tz, dateStr).catch(e => { console.warn('NAM error:', e); return null; })
+    : Promise.resolve(null);
+  const twcP = info
+    ? fetchTWC(info.lat, info.lon, tz, dateStr).catch(e => { console.warn('TWC error:', e); return null; })
+    : Promise.resolve(null);
+
+  const [rawLines, gefsRaw, hrrrRaw, namRaw, twcRaw] = await Promise.all([metarP, gefsP, hrrrP, namP, twcP]);
+
+  // Process METAR — filter to selected local date only
+  if (rawLines.length) {
+    setParseRefDate(new Date(dateStr + 'T12:00:00Z'));
+    obsAll = rawLines.map(l => toObs(parseMetar(l), elevM))
+      .filter(o => o.epoch && localDateStr(o.epoch, tz) === dateStr);
+    obsAll.sort((a, b) => (a.epoch || 0) - (b.epoch || 0));
+  }
+
+  // Process GEFS
+  if (gefsRaw) {
+    gefs = processGEFS(gefsRaw, dateStr, offset);
+  }
+
+  // Process HRRR & NAM (same response format)
+  if (hrrrRaw) hrrr = processHRRR(hrrrRaw, dateStr, offset);
+  if (namRaw)  nam  = processHRRR(namRaw, dateStr, offset);
+
+  // Process TWC (already in °F, no offset — it's the blended "truth" forecast)
+  if (twcRaw) twc = processTWC(twcRaw, dateStr, tz);
+
+  if (!obsAll.length && !gefs && !hrrr && !nam && !twc) {
+    loading.className = 'error';
+    loading.textContent = 'No data available. Check station code and date.';
+    _lastSnapshot = null;
+    document.getElementById('btnSave').disabled = true;
+    return;
+  }
+
+  // Map observations to nearest hour (for chart alignment)
+  const obsByHour = {};
+  for (const o of obsAll) {
+    if (!o.epoch) continue;
+    const h = localHour(o.epoch, tz);
+    if (!obsByHour[h] || Math.abs(new Date(o.epoch * 1000).getMinutes() - 53)
+        < Math.abs(new Date(obsByHour[h].epoch * 1000).getMinutes() - 53)) {
+      obsByHour[h] = o;
+    }
+  }
+
+  const nowH = isToday(dateStr) ? new Date().toLocaleString('en-US', { timeZone: tz, hour: 'numeric', hour12: false }) : -1;
+
+  // Build snapshot for saving
+  const obsHigh = obsAll.length ? Math.max(...obsAll.map(o => o.temp).filter(v => v != null)) : null;
+  _lastSnapshot = {
+    station, date: dateStr, tz, offset,
+    savedAt: new Date().toISOString(),
+    coordinates: info ? { lat: info.lat, lon: info.lon, elevM: info.elevM } : null,
+    observations: {
+      count: obsAll.length,
+      high: obsHigh,
+      hourly: Object.fromEntries(
+        Object.entries(obsByHour).map(([h, o]) => [h, {
+          epoch: o.epoch, temp: o.temp, feelsLike: o.feelsLike,
+          dewpoint: o.dewpoint, rh: o.rh, wind: o.wind, wx: o.wx_phrase, raw: o.raw,
+        }])
+      ),
+      all: obsAll.map(o => ({
+        epoch: o.epoch, temp: o.temp, feelsLike: o.feelsLike,
+        dewpoint: o.dewpoint, rh: o.rh, wind: o.wind, wx: o.wx_phrase, raw: o.raw,
+      })),
+    },
+    models: {
+      gefs: gefs ? {
+        nMembers: gefs.nMembers,
+        gridLat: gefs.gridLat, gridLon: gefs.gridLon,
+        memberHighs: gefs.memberHighs,
+        medianHigh: gefs.memberHighs.length
+          ? Math.round(pctile(gefs.memberHighs, 50))
+          : null,
+        p10High: gefs.memberHighs.length ? Math.round(pctile(gefs.memberHighs, 10)) : null,
+        p90High: gefs.memberHighs.length ? Math.round(pctile(gefs.memberHighs, 90)) : null,
+        hourlyStats: gefs.hourlyStats,
+      } : null,
+      hrrr: hrrr ? {
+        gridLat: hrrr.gridLat, gridLon: hrrr.gridLon,
+        predictedHigh: hrrr.predictedHigh,
+        hourlyTemps: hrrr.hourlyTemps,
+      } : null,
+      nam: nam ? {
+        gridLat: nam.gridLat, gridLon: nam.gridLon,
+        predictedHigh: nam.predictedHigh,
+        hourlyTemps: nam.hourlyTemps,
+      } : null,
+      twc: twc ? {
+        predictedHigh: twc.predictedHigh,
+        hourlyTemps: twc.hourlyTemps,
+      } : null,
+    },
+  };
+  document.getElementById('btnSave').disabled = false;
+
+  renderSummary(obsAll, gefs, hrrr, nam, twc);
+  renderChart(obsByHour, gefs, hrrr, nam, twc, parseInt(nowH, 10), isToday(dateStr));
+  renderTable(obsByHour, gefs, hrrr, nam, twc, tz);
+
+  const models = [
+    gefs ? `GEFS ×${gefs.nMembers}` : null,
+    hrrr ? 'HRRR' : null,
+    nam ? 'NAM' : null,
+    twc ? 'TWC' : null,
+  ].filter(Boolean).join(' · ');
+  const offsetNote = offset ? ` · offset ${offset > 0 ? '+' : ''}${offset}°F` : '';
+  document.getElementById('title').innerHTML =
+    `${station} — Temperature Forecast<span class="badge badge-gefs">GEFS</span><span class="badge badge-hrrr">HRRR</span><span class="badge badge-nam">NAM</span><span class="badge badge-twc">TWC</span><span class="badge badge-metar">METAR</span>`;
+  document.getElementById('subtitle').textContent =
+    `${dateStr} · ${obsAll.length} observations · ${models}${offsetNote}`;
+  document.getElementById('sourceNote').textContent =
+    `METAR: ${isToday(dateStr) ? 'aviationweather.gov' : 'IEM archive'} · GEFS/HRRR/NAM: Open-Meteo · TWC: Weather.com blended forecast`;
+
+  if (info && isToday(dateStr)) {
+    _currentTz = tz;
+    initRadarMap(info.lat, info.lon, tz);
+  } else {
+    document.getElementById('mapSection').style.display = 'none';
+  }
+
+  startClock(tz);
+}
+
+// ---------------------------------------------------------------------------
+// Precipitation Radar Map (RainViewer + Leaflet)
+// ---------------------------------------------------------------------------
+let _radarMap = null;
+let _radarFrames = [];
+let _radarLayers = {};
+let _radarIdx = 0;
+let _radarPlaying = false;
+let _radarTimer = null;
+let _stationMarker = null;
+let _currentTz = 'UTC';
+
+function initRadarMap(lat, lon, tz) {
+  const section = document.getElementById('mapSection');
+  section.style.display = '';
+
+  if (!_radarMap) {
+    _radarMap = L.map('radarMap', {
+      zoomControl: true,
+      attributionControl: true,
+    }).setView([lat, lon], 8);
+
+    L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
+      attribution: '&copy; <a href="https://carto.com/">CARTO</a> &middot; Radar: <a href="https://rainviewer.com">RainViewer</a>',
+      subdomains: 'abcd',
+      maxZoom: 18,
+    }).addTo(_radarMap);
+
+    document.getElementById('btnPrev').onclick = () => stepRadar(-1);
+    document.getElementById('btnNext').onclick = () => stepRadar(1);
+    document.getElementById('btnPlay').onclick = toggleRadarPlay;
+  } else {
+    _radarMap.setView([lat, lon], 8);
+  }
+
+  if (_stationMarker) _radarMap.removeLayer(_stationMarker);
+  _stationMarker = L.circleMarker([lat, lon], {
+    radius: 7, color: '#f59e0b', fillColor: '#f59e0b',
+    fillOpacity: 0.85, weight: 2,
+  }).addTo(_radarMap);
+
+  loadRainViewerFrames(tz);
+}
+
+async function loadRainViewerFrames(tz) {
+  try {
+    const res = await fetch('https://api.rainviewer.com/public/weather-maps.json');
+    const data = await res.json();
+
+    // Clear old layers
+    Object.values(_radarLayers).forEach(l => _radarMap.removeLayer(l));
+    _radarLayers = {};
+    _radarFrames = [];
+
+    const past = (data.radar?.past || []);
+    const nowcast = (data.radar?.nowcast || []);
+    _radarFrames = [...past, ...nowcast];
+
+    if (!_radarFrames.length) return;
+
+    _radarFrames.forEach(frame => {
+      _radarLayers[frame.path] = L.tileLayer(
+        data.host + frame.path + '/256/{z}/{x}/{y}/6/1_1.png', {
+          opacity: 0,
+          zIndex: 5,
+        }
+      );
+    });
+
+    _radarIdx = past.length - 1;
+    showRadarFrame(_radarIdx, tz);
+
+    if (!_radarPlaying) toggleRadarPlay();
+  } catch (e) {
+    console.warn('RainViewer load failed:', e);
+  }
+}
+
+function showRadarFrame(idx, tz) {
+  if (idx < 0 || idx >= _radarFrames.length) return;
+
+  Object.values(_radarLayers).forEach(l => {
+    if (_radarMap.hasLayer(l)) l.setOpacity(0);
+  });
+
+  const frame = _radarFrames[idx];
+  const layer = _radarLayers[frame.path];
+  if (!layer) return;
+
+  if (!_radarMap.hasLayer(layer)) layer.addTo(_radarMap);
+  layer.setOpacity(0.65);
+
+  const d = new Date(frame.time * 1000);
+  const opts = { timeZone: tz || 'UTC', hour: 'numeric', minute: '2-digit', hour12: true };
+  const isPast = idx < _radarFrames.length && frame.time <= Date.now() / 1000;
+  const label = isPast ? '' : ' (forecast)';
+  document.getElementById('radarTime').textContent =
+    d.toLocaleTimeString('en-US', opts) + label;
+}
+
+function stepRadar(dir) {
+  _radarIdx = (_radarIdx + dir + _radarFrames.length) % _radarFrames.length;
+  showRadarFrame(_radarIdx, _currentTz);
+}
+
+function toggleRadarPlay() {
+  _radarPlaying = !_radarPlaying;
+  const btn = document.getElementById('btnPlay');
+  if (_radarPlaying) {
+    btn.classList.add('active');
+    btn.innerHTML = '&#9646;&#9646;';
+    _radarTimer = setInterval(() => {
+      _radarIdx = (_radarIdx + 1) % _radarFrames.length;
+      showRadarFrame(_radarIdx, _currentTz);
+    }, 700);
+  } else {
+    btn.classList.remove('active');
+    btn.innerHTML = '&#9654;';
+    clearInterval(_radarTimer);
+  }
+}
+
+let _clockInterval = null;
+function startClock(tz) {
+  if (_clockInterval) clearInterval(_clockInterval);
+  const el = document.getElementById('clock');
+  function tick() {
+    const now = new Date();
+    const time = now.toLocaleTimeString('en-US', { timeZone: tz, hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: true });
+    const tzAbbr = now.toLocaleString('en-US', { timeZone: tz, timeZoneName: 'short' }).split(' ').pop();
+    el.innerHTML = `${time}<span class="tz-label">${tzAbbr}</span>`;
+  }
+  tick();
+  _clockInterval = setInterval(tick, 1000);
+}
+
+(function init() {
+  const now = new Date();
+  document.getElementById('dateInput').value = fmtDateISO(now);
+  run();
+})();
+</script>
+</body>
+</html>

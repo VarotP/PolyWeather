@@ -1,0 +1,328 @@
+Settling open trades …
+  Checking seattle 2026-03-05 … not yet resolved.
+  Checking chicago 2026-03-05 … not yet resolved.
+Settled 0 trade(s).
+Settling open trades …
+  Checking seattle 2026-03-05 … not yet resolved.
+  Checking chicago 2026-03-05 … not yet resolved.
+Settled 0 trade(s).
+Settling open trades …
+  Checking seattle 2026-03-05 … not yet resolved.
+  Checking chicago 2026-03-05 … not yet resolved.
+Settled 0 trade(s).
+Settling open trades …
+  Checking seattle 2026-03-05 … not yet resolved.
+  Checking chicago 2026-03-05 … not yet resolved.
+Settled 0 trade(s).
+Settling open trades …
+  Checking seattle 2026-03-05 … not yet resolved.
+  Checking chicago 2026-03-05 … not yet resolved.
+Settled 0 trade(s).
+Settling open trades …
+  Checking seattle 2026-03-05 … not yet resolved.
+  Checking chicago 2026-03-05 … not yet resolved.
+Settled 0 trade(s).
+Settling open trades …
+  Checking seattle 2026-03-05 … not yet resolved.
+  Checking chicago 2026-03-05 … not yet resolved.
+Settled 0 trade(s).
+Settling open trades …
+  Checking seattle 2026-03-05 … not yet resolved.
+  Checking chicago 2026-03-05 … not yet resolved.
+Settled 0 trade(s).
+Settling open trades …
+  Checking seattle 2026-03-05 … not yet resolved.
+  Checking chicago 2026-03-05 … not yet resolved.
+Settled 0 trade(s).
+Settling open trades …
+  Checking seattle 2026-03-05 … not yet resolved.
+  Checking chicago 2026-03-05 … LOSS  resolved='50-51°F'  pnl=$-100.00
+Settled 1 trade(s).
+Settling open trades …
+  Checking seattle 2026-03-05 … not yet resolved.
+Settled 0 trade(s).
+Settling open trades …
+  Checking seattle 2026-03-05 … LOSS  resolved='50-51°F'  pnl=$-100.00
+Settled 1 trade(s).
+Settling open trades …
+Settled 0 trade(s).
+Settling open trades …
+Settled 0 trade(s).
+Settling open trades …
+Settled 0 trade(s).
+Settling open trades …
+Settled 0 trade(s).
+Settling open trades …
+Settled 0 trade(s).
+Settling open trades …
+Settled 0 trade(s).
+Settling open trades …
+Settled 0 trade(s).
+Settling open trades …
+Settled 0 trade(s).
+Settling open trades …
+Settled 0 trade(s).
+Settling open trades …
+  Checking seattle 2026-03-08 … not yet resolved.
+  Checking chicago 2026-03-08 … not yet resolved.
+  Checking london 2026-03-09 … not yet resolved.
+  Checking atlanta 2026-03-08 … not yet resolved.
+Settled 0 trade(s).
+Settling open trades …
+  Checking seattle 2026-03-08 … not yet resolved.
+  Checking chicago 2026-03-08 … not yet resolved.
+  Checking london 2026-03-09 … not yet resolved.
+  Checking atlanta 2026-03-08 … not yet resolved.
+Settled 0 trade(s).
+Settling open trades …
+  Checking seattle 2026-03-08 … not yet resolved.
+  Checking chicago 2026-03-08 … not yet resolved.
+  Checking london 2026-03-09 … not yet resolved.
+  Checking atlanta 2026-03-08 … not yet resolved.
+Settled 0 trade(s).
+Settling open trades …
+  Checking seattle 2026-03-08 … not yet resolved.
+  Checking chicago 2026-03-08 … not yet resolved.
+  Checking london 2026-03-09 … not yet resolved.
+  Checking atlanta 2026-03-08 … not yet resolved.
+Settled 0 trade(s).
+Settling open trades …
+  Checking seattle 2026-03-08 … not yet resolved.
+  Checking chicago 2026-03-08 … not yet resolved.
+  Checking london 2026-03-09 … not yet resolved.
+  Checking atlanta 2026-03-08 … not yet resolved.
+Settled 0 trade(s).
+Settling open trades …
+  Checking seattle 2026-03-08 … not yet resolved.
+  Checking chicago 2026-03-08 … not yet resolved.
+  Checking london 2026-03-09 … not yet resolved.
+  Checking atlanta 2026-03-08 … not yet resolved.
+Settled 0 trade(s).
+  Warning: API error for slug highest-temperature-in-seattle-on-march-8-2026: HTTPSConnectionPool(host='gamma-api.polymarket.com', port=443): Max retries exceeded with url: /events?slug=highest-temperature-in-seattle-on-march-8-2026 (Caused by NameResolutionError("HTTPSConnection(host='gamma-api.polymarket.com', port=443): Failed to resolve 'gamma-api.polymarket.com' ([Errno 8] nodename nor servname provided, or not known)"))
+  Warning: API error for slug highest-temperature-in-chicago-on-march-8-2026: HTTPSConnectionPool(host='gamma-api.polymarket.com', port=443): Max retries exceeded with url: /events?slug=highest-temperature-in-chicago-on-march-8-2026 (Caused by NameResolutionError("HTTPSConnection(host='gamma-api.polymarket.com', port=443): Failed to resolve 'gamma-api.polymarket.com' ([Errno 8] nodename nor servname provided, or not known)"))
+  Warning: API error for slug highest-temperature-in-london-on-march-9-2026: HTTPSConnectionPool(host='gamma-api.polymarket.com', port=443): Max retries exceeded with url: /events?slug=highest-temperature-in-london-on-march-9-2026 (Caused by NameResolutionError("HTTPSConnection(host='gamma-api.polymarket.com', port=443): Failed to resolve 'gamma-api.polymarket.com' ([Errno 8] nodename nor servname provided, or not known)"))
+  Warning: API error for slug highest-temperature-in-atlanta-on-march-8-2026: HTTPSConnectionPool(host='gamma-api.polymarket.com', port=443): Max retries exceeded with url: /events?slug=highest-temperature-in-atlanta-on-march-8-2026 (Caused by NameResolutionError("HTTPSConnection(host='gamma-api.polymarket.com', port=443): Failed to resolve 'gamma-api.polymarket.com' ([Errno 8] nodename nor servname provided, or not known)"))
+Settling open trades …
+  Checking seattle 2026-03-08 … API error, skipping.
+  Checking chicago 2026-03-08 … API error, skipping.
+  Checking london 2026-03-09 … API error, skipping.
+  Checking atlanta 2026-03-08 … API error, skipping.
+Settled 0 trade(s).
+Settling open trades …
+  Checking seattle 2026-03-08 … not yet resolved.
+  Checking chicago 2026-03-08 … not yet resolved.
+  Checking london 2026-03-09 … not yet resolved.
+  Checking atlanta 2026-03-08 … not yet resolved.
+Settled 0 trade(s).
+Settling open trades …
+  Checking seattle 2026-03-08 … not yet resolved.
+  Checking chicago 2026-03-08 … not yet resolved.
+  Checking london 2026-03-09 … not yet resolved.
+  Checking atlanta 2026-03-08 … not yet resolved.
+Settled 0 trade(s).
+Settling open trades …
+  Checking seattle 2026-03-08 … not yet resolved.
+  Checking chicago 2026-03-08 … not yet resolved.
+  Checking london 2026-03-09 … not yet resolved.
+  Checking atlanta 2026-03-08 … not yet resolved.
+Settled 0 trade(s).
+Settling open trades …
+  Checking seattle 2026-03-08 … not yet resolved.
+  Checking chicago 2026-03-08 … not yet resolved.
+  Checking london 2026-03-09 … not yet resolved.
+  Checking atlanta 2026-03-08 … not yet resolved.
+Settled 0 trade(s).
+Settling open trades …
+  Checking seattle 2026-03-08 … not yet resolved.
+  Checking chicago 2026-03-08 … not yet resolved.
+  Checking london 2026-03-09 … not yet resolved.
+  Checking atlanta 2026-03-08 … not yet resolved.
+Settled 0 trade(s).
+Settling open trades …
+  Checking seattle 2026-03-08 … not yet resolved.
+  Checking chicago 2026-03-08 … not yet resolved.
+  Checking london 2026-03-09 … not yet resolved.
+  Checking atlanta 2026-03-08 … not yet resolved.
+Settled 0 trade(s).
+Settling open trades …
+  Checking seattle 2026-03-08 … not yet resolved.
+  Checking chicago 2026-03-08 … not yet resolved.
+  Checking london 2026-03-09 … not yet resolved.
+  Checking atlanta 2026-03-08 … not yet resolved.
+  Checking seattle 2026-03-09 … not yet resolved.
+  Checking atlanta 2026-03-09 … not yet resolved.
+Settled 0 trade(s).
+Settling open trades …
+  Checking seattle 2026-03-08 … not yet resolved.
+  Checking chicago 2026-03-08 … not yet resolved.
+  Checking london 2026-03-09 … not yet resolved.
+  Checking atlanta 2026-03-08 … not yet resolved.
+  Checking seattle 2026-03-09 … not yet resolved.
+  Checking atlanta 2026-03-09 … not yet resolved.
+Settled 0 trade(s).
+Settling open trades …
+  Checking seattle 2026-03-08 … not yet resolved.
+  Checking chicago 2026-03-08 … not yet resolved.
+  Checking london 2026-03-09 … not yet resolved.
+  Checking atlanta 2026-03-08 … not yet resolved.
+  Checking seattle 2026-03-09 … not yet resolved.
+  Checking atlanta 2026-03-09 … not yet resolved.
+Settled 0 trade(s).
+Settling open trades …
+  Checking seattle 2026-03-08 … not yet resolved.
+  Checking chicago 2026-03-08 … not yet resolved.
+  Checking london 2026-03-09 … not yet resolved.
+  Checking atlanta 2026-03-08 … not yet resolved.
+  Checking seattle 2026-03-09 … not yet resolved.
+  Checking atlanta 2026-03-09 … not yet resolved.
+Settled 0 trade(s).
+Settling open trades …
+  Checking seattle 2026-03-08 … not yet resolved.
+  Checking chicago 2026-03-08 … not yet resolved.
+  Checking london 2026-03-09 … not yet resolved.
+  Checking atlanta 2026-03-08 … not yet resolved.
+  Checking seattle 2026-03-09 … not yet resolved.
+  Checking atlanta 2026-03-09 … not yet resolved.
+Settled 0 trade(s).
+Settling open trades …
+  Checking seattle 2026-03-08 … not yet resolved.
+  Checking chicago 2026-03-08 … not yet resolved.
+  Checking london 2026-03-09 … not yet resolved.
+  Checking atlanta 2026-03-08 … LOSS  resolved='68-69°F'  pnl=$-100.00
+  Checking seattle 2026-03-09 … not yet resolved.
+  Checking atlanta 2026-03-09 … not yet resolved.
+Settled 1 trade(s).
+  Warning: API error for slug highest-temperature-in-seattle-on-march-8-2026: HTTPSConnectionPool(host='gamma-api.polymarket.com', port=443): Max retries exceeded with url: /events?slug=highest-temperature-in-seattle-on-march-8-2026 (Caused by NameResolutionError("HTTPSConnection(host='gamma-api.polymarket.com', port=443): Failed to resolve 'gamma-api.polymarket.com' ([Errno 8] nodename nor servname provided, or not known)"))
+  Warning: API error for slug highest-temperature-in-chicago-on-march-8-2026: HTTPSConnectionPool(host='gamma-api.polymarket.com', port=443): Max retries exceeded with url: /events?slug=highest-temperature-in-chicago-on-march-8-2026 (Caused by NameResolutionError("HTTPSConnection(host='gamma-api.polymarket.com', port=443): Failed to resolve 'gamma-api.polymarket.com' ([Errno 8] nodename nor servname provided, or not known)"))
+  Warning: API error for slug highest-temperature-in-london-on-march-9-2026: HTTPSConnectionPool(host='gamma-api.polymarket.com', port=443): Max retries exceeded with url: /events?slug=highest-temperature-in-london-on-march-9-2026 (Caused by NameResolutionError("HTTPSConnection(host='gamma-api.polymarket.com', port=443): Failed to resolve 'gamma-api.polymarket.com' ([Errno 8] nodename nor servname provided, or not known)"))
+  Warning: API error for slug highest-temperature-in-seattle-on-march-9-2026: HTTPSConnectionPool(host='gamma-api.polymarket.com', port=443): Max retries exceeded with url: /events?slug=highest-temperature-in-seattle-on-march-9-2026 (Caused by NameResolutionError("HTTPSConnection(host='gamma-api.polymarket.com', port=443): Failed to resolve 'gamma-api.polymarket.com' ([Errno 8] nodename nor servname provided, or not known)"))
+  Warning: API error for slug highest-temperature-in-atlanta-on-march-9-2026: HTTPSConnectionPool(host='gamma-api.polymarket.com', port=443): Max retries exceeded with url: /events?slug=highest-temperature-in-atlanta-on-march-9-2026 (Caused by NameResolutionError("HTTPSConnection(host='gamma-api.polymarket.com', port=443): Failed to resolve 'gamma-api.polymarket.com' ([Errno 8] nodename nor servname provided, or not known)"))
+Settling open trades …
+  Checking seattle 2026-03-08 … API error, skipping.
+  Checking chicago 2026-03-08 … API error, skipping.
+  Checking london 2026-03-09 … API error, skipping.
+  Checking seattle 2026-03-09 … API error, skipping.
+  Checking atlanta 2026-03-09 … API error, skipping.
+Settled 0 trade(s).
+  Warning: API error for slug highest-temperature-in-seattle-on-march-8-2026: HTTPSConnectionPool(host='gamma-api.polymarket.com', port=443): Max retries exceeded with url: /events?slug=highest-temperature-in-seattle-on-march-8-2026 (Caused by NameResolutionError("HTTPSConnection(host='gamma-api.polymarket.com', port=443): Failed to resolve 'gamma-api.polymarket.com' ([Errno 8] nodename nor servname provided, or not known)"))
+  Warning: API error for slug highest-temperature-in-chicago-on-march-8-2026: HTTPSConnectionPool(host='gamma-api.polymarket.com', port=443): Max retries exceeded with url: /events?slug=highest-temperature-in-chicago-on-march-8-2026 (Caused by NameResolutionError("HTTPSConnection(host='gamma-api.polymarket.com', port=443): Failed to resolve 'gamma-api.polymarket.com' ([Errno 8] nodename nor servname provided, or not known)"))
+  Warning: API error for slug highest-temperature-in-london-on-march-9-2026: HTTPSConnectionPool(host='gamma-api.polymarket.com', port=443): Max retries exceeded with url: /events?slug=highest-temperature-in-london-on-march-9-2026 (Caused by NameResolutionError("HTTPSConnection(host='gamma-api.polymarket.com', port=443): Failed to resolve 'gamma-api.polymarket.com' ([Errno 8] nodename nor servname provided, or not known)"))
+  Warning: API error for slug highest-temperature-in-seattle-on-march-9-2026: HTTPSConnectionPool(host='gamma-api.polymarket.com', port=443): Max retries exceeded with url: /events?slug=highest-temperature-in-seattle-on-march-9-2026 (Caused by NameResolutionError("HTTPSConnection(host='gamma-api.polymarket.com', port=443): Failed to resolve 'gamma-api.polymarket.com' ([Errno 8] nodename nor servname provided, or not known)"))
+  Warning: API error for slug highest-temperature-in-atlanta-on-march-9-2026: HTTPSConnectionPool(host='gamma-api.polymarket.com', port=443): Max retries exceeded with url: /events?slug=highest-temperature-in-atlanta-on-march-9-2026 (Caused by NameResolutionError("HTTPSConnection(host='gamma-api.polymarket.com', port=443): Failed to resolve 'gamma-api.polymarket.com' ([Errno 8] nodename nor servname provided, or not known)"))
+Settling open trades …
+  Checking seattle 2026-03-08 … API error, skipping.
+  Checking chicago 2026-03-08 … API error, skipping.
+  Checking london 2026-03-09 … API error, skipping.
+  Checking seattle 2026-03-09 … API error, skipping.
+  Checking atlanta 2026-03-09 … API error, skipping.
+Settled 0 trade(s).
+  Warning: API error for slug highest-temperature-in-seattle-on-march-8-2026: HTTPSConnectionPool(host='gamma-api.polymarket.com', port=443): Max retries exceeded with url: /events?slug=highest-temperature-in-seattle-on-march-8-2026 (Caused by NameResolutionError("HTTPSConnection(host='gamma-api.polymarket.com', port=443): Failed to resolve 'gamma-api.polymarket.com' ([Errno 8] nodename nor servname provided, or not known)"))
+  Warning: API error for slug highest-temperature-in-chicago-on-march-8-2026: HTTPSConnectionPool(host='gamma-api.polymarket.com', port=443): Max retries exceeded with url: /events?slug=highest-temperature-in-chicago-on-march-8-2026 (Caused by NameResolutionError("HTTPSConnection(host='gamma-api.polymarket.com', port=443): Failed to resolve 'gamma-api.polymarket.com' ([Errno 8] nodename nor servname provided, or not known)"))
+  Warning: API error for slug highest-temperature-in-london-on-march-9-2026: HTTPSConnectionPool(host='gamma-api.polymarket.com', port=443): Max retries exceeded with url: /events?slug=highest-temperature-in-london-on-march-9-2026 (Caused by NameResolutionError("HTTPSConnection(host='gamma-api.polymarket.com', port=443): Failed to resolve 'gamma-api.polymarket.com' ([Errno 8] nodename nor servname provided, or not known)"))
+  Warning: API error for slug highest-temperature-in-seattle-on-march-9-2026: HTTPSConnectionPool(host='gamma-api.polymarket.com', port=443): Max retries exceeded with url: /events?slug=highest-temperature-in-seattle-on-march-9-2026 (Caused by NameResolutionError("HTTPSConnection(host='gamma-api.polymarket.com', port=443): Failed to resolve 'gamma-api.polymarket.com' ([Errno 8] nodename nor servname provided, or not known)"))
+  Warning: API error for slug highest-temperature-in-atlanta-on-march-9-2026: HTTPSConnectionPool(host='gamma-api.polymarket.com', port=443): Max retries exceeded with url: /events?slug=highest-temperature-in-atlanta-on-march-9-2026 (Caused by NameResolutionError("HTTPSConnection(host='gamma-api.polymarket.com', port=443): Failed to resolve 'gamma-api.polymarket.com' ([Errno 8] nodename nor servname provided, or not known)"))
+Settling open trades …
+  Checking seattle 2026-03-08 … API error, skipping.
+  Checking chicago 2026-03-08 … API error, skipping.
+  Checking london 2026-03-09 … API error, skipping.
+  Checking seattle 2026-03-09 … API error, skipping.
+  Checking atlanta 2026-03-09 … API error, skipping.
+Settled 0 trade(s).
+  Warning: API error for slug highest-temperature-in-seattle-on-march-8-2026: HTTPSConnectionPool(host='gamma-api.polymarket.com', port=443): Max retries exceeded with url: /events?slug=highest-temperature-in-seattle-on-march-8-2026 (Caused by NameResolutionError("HTTPSConnection(host='gamma-api.polymarket.com', port=443): Failed to resolve 'gamma-api.polymarket.com' ([Errno 8] nodename nor servname provided, or not known)"))
+  Warning: API error for slug highest-temperature-in-chicago-on-march-8-2026: HTTPSConnectionPool(host='gamma-api.polymarket.com', port=443): Max retries exceeded with url: /events?slug=highest-temperature-in-chicago-on-march-8-2026 (Caused by NameResolutionError("HTTPSConnection(host='gamma-api.polymarket.com', port=443): Failed to resolve 'gamma-api.polymarket.com' ([Errno 8] nodename nor servname provided, or not known)"))
+  Warning: API error for slug highest-temperature-in-london-on-march-9-2026: HTTPSConnectionPool(host='gamma-api.polymarket.com', port=443): Max retries exceeded with url: /events?slug=highest-temperature-in-london-on-march-9-2026 (Caused by NameResolutionError("HTTPSConnection(host='gamma-api.polymarket.com', port=443): Failed to resolve 'gamma-api.polymarket.com' ([Errno 8] nodename nor servname provided, or not known)"))
+  Warning: API error for slug highest-temperature-in-seattle-on-march-9-2026: HTTPSConnectionPool(host='gamma-api.polymarket.com', port=443): Max retries exceeded with url: /events?slug=highest-temperature-in-seattle-on-march-9-2026 (Caused by NameResolutionError("HTTPSConnection(host='gamma-api.polymarket.com', port=443): Failed to resolve 'gamma-api.polymarket.com' ([Errno 8] nodename nor servname provided, or not known)"))
+  Warning: API error for slug highest-temperature-in-atlanta-on-march-9-2026: HTTPSConnectionPool(host='gamma-api.polymarket.com', port=443): Max retries exceeded with url: /events?slug=highest-temperature-in-atlanta-on-march-9-2026 (Caused by NameResolutionError("HTTPSConnection(host='gamma-api.polymarket.com', port=443): Failed to resolve 'gamma-api.polymarket.com' ([Errno 8] nodename nor servname provided, or not known)"))
+Settling open trades …
+  Checking seattle 2026-03-08 … API error, skipping.
+  Checking chicago 2026-03-08 … API error, skipping.
+  Checking london 2026-03-09 … API error, skipping.
+  Checking seattle 2026-03-09 … API error, skipping.
+  Checking atlanta 2026-03-09 … API error, skipping.
+Settled 0 trade(s).
+Settling open trades …
+  Checking seattle 2026-03-08 … LOSS  resolved='52-53°F'  pnl=$-100.00
+  Checking chicago 2026-03-08 … LOSS  resolved='62-63°F'  pnl=$-100.00
+  Checking london 2026-03-09 … not yet resolved.
+  Checking seattle 2026-03-09 … not yet resolved.
+  Checking atlanta 2026-03-09 … not yet resolved.
+Settled 2 trade(s).
+Settling open trades …
+  Checking london 2026-03-09 … not yet resolved.
+  Checking seattle 2026-03-09 … not yet resolved.
+  Checking atlanta 2026-03-09 … not yet resolved.
+Settled 0 trade(s).
+Settling open trades …
+  Checking london 2026-03-09 … not yet resolved.
+  Checking seattle 2026-03-09 … not yet resolved.
+  Checking atlanta 2026-03-09 … not yet resolved.
+Settled 0 trade(s).
+Settling open trades …
+  Checking london 2026-03-09 … not yet resolved.
+  Checking seattle 2026-03-09 … not yet resolved.
+  Checking atlanta 2026-03-09 … not yet resolved.
+Settled 0 trade(s).
+Settling open trades …
+  Checking london 2026-03-09 … LOSS  resolved='15°C'  pnl=$-100.00
+  Checking seattle 2026-03-09 … not yet resolved.
+  Checking atlanta 2026-03-09 … LOSS  resolved='76-77°F'  pnl=$-100.00
+  Checking london 2026-03-11 … not yet resolved.
+  Checking atlanta 2026-03-10 … not yet resolved.
+Settled 2 trade(s).
+Settling open trades …
+  Checking seattle 2026-03-09 … WIN  resolved='44-45°F'  pnl=$+244.83
+  Checking london 2026-03-11 … not yet resolved.
+  Checking atlanta 2026-03-10 … not yet resolved.
+Settled 1 trade(s).
+Settling open trades …
+  Checking london 2026-03-11 … not yet resolved.
+  Checking atlanta 2026-03-10 … not yet resolved.
+Settled 0 trade(s).
+Settling open trades …
+  Checking london 2026-03-11 … not yet resolved.
+  Checking atlanta 2026-03-10 … not yet resolved.
+Settled 0 trade(s).
+Settling open trades …
+  Checking london 2026-03-11 … not yet resolved.
+  Checking atlanta 2026-03-10 … LOSS  resolved='78°F or higher'  pnl=$-100.00
+Settled 1 trade(s).
+Settling open trades …
+  Checking london 2026-03-11 … not yet resolved.
+Settled 0 trade(s).
+Settling open trades …
+  Checking london 2026-03-11 … not yet resolved.
+Settled 0 trade(s).
+Settling open trades …
+  Checking london 2026-03-11 … not yet resolved.
+Settled 0 trade(s).
+Settling open trades …
+  Checking london 2026-03-11 … LOSS  resolved='13°C'  pnl=$-100.00
+Settled 1 trade(s).
+Settling open trades …
+Settled 0 trade(s).
+Settling open trades …
+Settled 0 trade(s).
+Settling open trades …
+Settled 0 trade(s).
+Settling open trades …
+Settled 0 trade(s).
+Settling open trades …
+Settled 0 trade(s).
+Settling open trades …
+Settled 0 trade(s).
+Settling open trades …
+Settled 0 trade(s).
+Settling open trades …
+Settled 0 trade(s).
+Settling open trades …
+Settled 0 trade(s).
+Settling open trades …
+Settled 0 trade(s).
+Settling open trades …
+Settled 0 trade(s).
+Settling open trades …
+Settled 0 trade(s).
+Settling open trades …
+Settled 0 trade(s).
+Settling open trades …
+Settled 0 trade(s).

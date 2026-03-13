@@ -1,0 +1,156 @@
+
+════════════════════════════════════════════════════════════
+  Paper-Trade Evaluation Report
+────────────────────────────────────────────────────────────
+  Settled: 3    Open: 6
+
+  ALL CITIES  (n=3)
+    Win rate     33.3%
+    Total P&L    $-157.14
+    Avg P&L      $-52.38   (σ $67.34)
+    ROI          -52.4%
+    Brier model  0.2029
+    Brier market 0.0494
+    Avg edge     winners=0.171  losers=0.370
+
+  CHICAGO  (n=1)
+    Win rate     0.0%
+    Total P&L    $-100.00
+    Avg P&L      $-100.00   (σ $0.00)
+    ROI          -100.0%
+    Brier model  0.4163
+    Brier market 0.0462
+    Avg edge     winners=—  losers=0.430
+
+  NYC  (n=1)
+    Win rate     100.0%
+    Total P&L    $+42.86
+    Avg P&L      $+42.86   (σ $0.00)
+    ROI          42.9%
+    Brier model  0.0166
+    Brier market 0.0900
+    Avg edge     winners=0.171  losers=—
+
+  SEATTLE  (n=1)
+    Win rate     0.0%
+    Total P&L    $-100.00
+    Avg P&L      $-100.00   (σ $0.00)
+    ROI          -100.0%
+    Brier model  0.1759
+    Brier market 0.0121
+    Avg edge     winners=—  losers=0.309
+
+════════════════════════════════════════════════════════════
+
+════════════════════════════════════════════════════════════
+  Paper-Trade Evaluation Report
+────────────────────────────────────────────────────────────
+  Settled: 6    Open: 5
+
+  ALL CITIES  (n=6)
+    Win rate     16.7%
+    Total P&L    $-457.14
+    Avg P&L      $-76.19   (σ $53.24)
+    ROI          -76.2%
+    Brier model  0.2654
+    Brier market 0.0302
+    Avg edge     winners=0.171  losers=0.438
+
+  ATLANTA  (n=1)
+    Win rate     0.0%
+    Total P&L    $-100.00
+    Avg P&L      $-100.00   (σ $0.00)
+    ROI          -100.0%
+    Brier model  0.2664
+    Brier market 0.0030
+    Avg edge     winners=—  losers=0.461
+
+  CHICAGO  (n=2)
+    Win rate     0.0%
+    Total P&L    $-200.00
+    Avg P&L      $-100.00   (σ $0.00)
+    ROI          -100.0%
+    Brier model  0.3585
+    Brier market 0.0236
+    Avg edge     winners=—  losers=0.473
+
+  NYC  (n=1)
+    Win rate     100.0%
+    Total P&L    $+42.86
+    Avg P&L      $+42.86   (σ $0.00)
+    ROI          42.9%
+    Brier model  0.0166
+    Brier market 0.0900
+    Avg edge     winners=0.171  losers=—
+
+  SEATTLE  (n=2)
+    Win rate     0.0%
+    Total P&L    $-200.00
+    Avg P&L      $-100.00   (σ $0.00)
+    ROI          -100.0%
+    Brier model  0.2961
+    Brier market 0.0205
+    Avg edge     winners=—  losers=0.392
+
+════════════════════════════════════════════════════════════
+
+════════════════════════════════════════════════════════════
+  Paper-Trade Evaluation Report
+────────────────────────────────────────────────────────────
+  Settled: 11    Open: 0
+
+  ALL CITIES  (n=11)
+    Win rate     18.2%
+    Total P&L    $-612.31
+    Avg P&L      $-55.66   (σ $103.44)
+    ROI          -55.7%
+    Brier model  0.2461
+    Brier market 0.0759
+    Avg edge     winners=0.199  losers=0.373
+
+  ATLANTA  (n=3)
+    Win rate     0.0%
+    Total P&L    $-300.00
+    Avg P&L      $-100.00   (σ $0.00)
+    ROI          -100.0%
+    Brier model  0.2598
+    Brier market 0.0364
+    Avg edge     winners=—  losers=0.371
+
+  CHICAGO  (n=2)
+    Win rate     0.0%
+    Total P&L    $-200.00
+    Avg P&L      $-100.00   (σ $0.00)
+    ROI          -100.0%
+    Brier model  0.3585
+    Brier market 0.0236
+    Avg edge     winners=—  losers=0.473
+
+  LONDON  (n=2)
+    Win rate     0.0%
+    Total P&L    $-200.00
+    Avg P&L      $-100.00   (σ $0.00)
+    ROI          -100.0%
+    Brier model  0.1837
+    Brier market 0.0219
+    Avg edge     winners=—  losers=0.256
+
+  NYC  (n=1)
+    Win rate     100.0%
+    Total P&L    $+42.86
+    Avg P&L      $+42.86   (σ $0.00)
+    ROI          42.9%
+    Brier model  0.0166
+    Brier market 0.0900
+    Avg edge     winners=0.171  losers=—
+
+  SEATTLE  (n=3)
+    Win rate     33.3%
+    Total P&L    $+44.83
+    Avg P&L      $+14.94   (σ $162.55)
+    ROI          14.9%
+    Brier model  0.2754
+    Brier market 0.1817
+    Avg edge     winners=0.226  losers=0.392
+
+════════════════════════════════════════════════════════════
