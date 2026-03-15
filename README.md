@@ -72,9 +72,13 @@ python3 save_predictions.py --stations KSEA KORD
 
 # Dry run — fetch data but don't write files
 python3 save_predictions.py --dry-run
+
+# Auto/cron mode — only saves stations where local time is 11 PM,
+# skips if already saved. Run hourly from cron to cover all timezones.
+python3 save_predictions.py --auto
 ```
 
-Stations are configured in the `STATIONS` dict at the top of the file (default: KSEA, KORD, KLGA, KATL).
+Stations are configured in the `STATIONS` dict at the top of the file (default: KSEA, KORD, KLGA, KATL). The `--auto` flag handles multiple timezones and DST transitions automatically.
 
 ### `analyze_predictions.py` — Prediction Accuracy Analysis
 
@@ -200,8 +204,8 @@ Settlement uses **Polymarket's own resolution** (Gamma API), not a weather API. 
 # Evaluate daily
 30 19 * * * /Users/evlav/VSC/polymarketbot/.venv/bin/python3 /Users/evlav/VSC/polymarketbot/polymarket_papertrade.py --eval >> /Users/evlav/VSC/polymarketbot/log_eval.log 2>&1
 
-# Save prediction snapshots nightly at 11:50 PM PST (07:50 UTC) for tomorrow
-50 7 * * * /Users/evlav/VSC/polymarketbot/.venv/bin/python3 /Users/evlav/VSC/polymarketbot/save_predictions.py >> /Users/evlav/VSC/polymarketbot/log_save.log 2>&1
+# Save prediction snapshots — runs hourly, auto-saves each station at 11 PM local time
+50 * * * * /Users/evlav/VSC/polymarketbot/.venv/bin/python3 /Users/evlav/VSC/polymarketbot/save_predictions.py --auto >> /Users/evlav/VSC/polymarketbot/log_save.log 2>&1
 ```
 
 ## File Layout

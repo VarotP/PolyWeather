@@ -10,6 +10,11 @@ Usage:
     python3 save_predictions.py --date 2026-03-17
     python3 save_predictions.py --stations KSEA KORD
     python3 save_predictions.py --dry-run        # fetch but don't write files
+
+    # Cron mode: run hourly, auto-saves only stations where local time
+    # is between 23:00–23:59 (i.e. within the last hour before midnight).
+    # Handles multiple timezones and DST automatically.
+    python3 save_predictions.py --auto
 """
 
 from __future__ import annotations
@@ -292,55 +297,49 @@ def save_snapshot(snapshot: dict) -> Path:
     return out_path
 
 
+def already_saved(station: str, date_str: str) -> bool:
+    """Check if a prediction file already exists for this station+date."""
+    prefix = f"{station}_{date_str}_"
+    return any(f.name.startswith(prefix) for f in PREDICTIONS_DIR.glob("*.json"))
+
+
+# ── Auto mode: timezone-aware cron helper ────────────────────────────────────
+
+SAVE_HOUR = 23  # local hour to trigger save (23 = 11 PM)
+
+def get_auto_stations() -> list[tuple[str, dict, str]]:
+    """Return (station, info, tomorrow_date_str) for stations where the
+    local time is currently within the SAVE_HOUR (23:00–23:59)."""
+    now_utc = datetime.now(timezone.utc)
+    results = []
+    for station, info in STATIONS.items():
+        tz = ZoneInfo(info["tz"])
+        local_now = now_utc.astimezone(tz)
+        if local_now.hour != SAVE_HOUR:
+            continue
+        tomorrow = (local_now + timedelta(days=1)).strftime("%Y-%m-%d")
+        if already_saved(station, tomorrow):
+            continue
+        results.append((station, info, tomorrow))
+    return results
+
+
 # ── CLI ──────────────────────────────────────────────────────────────────────
 
-def main():
-    tomorrow = (date.today() + timedelta(days=1)).isoformat()
-
-    parser = argparse.ArgumentParser(
-        description="Save prediction snapshots for configured weather stations.",
-    )
-    parser.add_argument(
-        "--date", default=tomorrow,
-        help=f"Target date in YYYY-MM-DD format (default: tomorrow = {tomorrow})",
-    )
-    parser.add_argument(
-        "--stations", nargs="+", metavar="ICAO",
-        help=f"Station(s) to save (default: all configured = {' '.join(STATIONS)})",
-    )
-    parser.add_argument(
-        "--dry-run", action="store_true",
-        help="Fetch data and print summary but don't write files",
-    )
-    args = parser.parse_args()
-
-    stations = args.stations or list(STATIONS.keys())
-    unknown = [s for s in stations if s not in STATIONS]
-    if unknown:
-        print(f"Error: unknown station(s): {', '.join(unknown)}", file=sys.stderr)
-        print(f"Available: {', '.join(STATIONS)}", file=sys.stderr)
-        sys.exit(1)
-
-    date_str = args.date
-    print(f"Saving predictions for {date_str}")
-    print(f"Stations: {', '.join(stations)}")
-    print()
-
+def run_save(stations_with_dates: list[tuple[str, dict, str]], dry_run: bool) -> list[str]:
+    """Fetch and save predictions. Returns list of saved filenames."""
     saved = []
-    for station in stations:
-        info = STATIONS[station]
+    for station, info, date_str in stations_with_dates:
         offset_note = f" [offset {info['offset']:+d}°F]" if info.get("offset") else ""
-        print(f"  {station}{offset_note}")
+        print(f"  {station} → {date_str}{offset_note}")
         snapshot = build_snapshot(station, info, date_str)
 
-        models_ok = sum(
-            1 for m in snapshot["models"].values() if m is not None
-        )
+        models_ok = sum(1 for m in snapshot["models"].values() if m is not None)
         if models_ok == 0:
             print(f"    ⚠ No model data — skipping save")
             continue
 
-        if args.dry_run:
+        if dry_run:
             gefs = snapshot["models"].get("gefs")
             print(f"    [dry-run] Would save: {station}_{date_str}")
             if gefs:
@@ -350,6 +349,78 @@ def main():
             saved.append(path.name)
             print(f"    ✓ Saved → predictions/{path.name}")
         print()
+    return saved
+
+
+def main():
+    tomorrow = (date.today() + timedelta(days=1)).isoformat()
+
+    parser = argparse.ArgumentParser(
+        description="Save prediction snapshots for configured weather stations.",
+    )
+    parser.add_argument(
+        "--date", default=None,
+        help=f"Target date in YYYY-MM-DD format (default: tomorrow = {tomorrow})",
+    )
+    parser.add_argument(
+        "--stations", nargs="+", metavar="ICAO",
+        help=f"Station(s) to save (default: all configured = {' '.join(STATIONS)})",
+    )
+    parser.add_argument(
+        "--auto", action="store_true",
+        help="Cron mode: only save stations where local time is 11 PM. "
+             "Skips stations already saved for that date. Run hourly from cron.",
+    )
+    parser.add_argument(
+        "--dry-run", action="store_true",
+        help="Fetch data and print summary but don't write files",
+    )
+    args = parser.parse_args()
+
+    if args.auto:
+        now_utc = datetime.now(timezone.utc)
+        print(f"[auto] {now_utc.strftime('%Y-%m-%d %H:%M UTC')}")
+
+        ready = get_auto_stations()
+        if not ready:
+            tz_times = []
+            seen_tz = set()
+            for info in STATIONS.values():
+                if info["tz"] in seen_tz:
+                    continue
+                seen_tz.add(info["tz"])
+                local = now_utc.astimezone(ZoneInfo(info["tz"]))
+                tz_times.append(f"{info['tz'].split('/')[-1]} {local.strftime('%H:%M')}")
+            print(f"  No stations at {SAVE_HOUR}:xx local — " + ", ".join(tz_times))
+            return
+
+        print(f"  {len(ready)} station(s) ready:")
+        for s, _, d in ready:
+            tz = STATIONS[s]["tz"]
+            local = now_utc.astimezone(ZoneInfo(tz))
+            print(f"    {s}  {local.strftime('%I:%M %p')} {tz.split('/')[-1]}  → {d}")
+        print()
+
+        saved = run_save(ready, args.dry_run)
+        if saved:
+            print(f"Done — {len(saved)} file(s) saved")
+        return
+
+    # Manual mode
+    stations = args.stations or list(STATIONS.keys())
+    unknown = [s for s in stations if s not in STATIONS]
+    if unknown:
+        print(f"Error: unknown station(s): {', '.join(unknown)}", file=sys.stderr)
+        print(f"Available: {', '.join(STATIONS)}", file=sys.stderr)
+        sys.exit(1)
+
+    date_str = args.date or tomorrow
+    print(f"Saving predictions for {date_str}")
+    print(f"Stations: {', '.join(stations)}")
+    print()
+
+    items = [(s, STATIONS[s], date_str) for s in stations]
+    saved = run_save(items, args.dry_run)
 
     if saved:
         print(f"Done — {len(saved)} file(s) saved to predictions/")
