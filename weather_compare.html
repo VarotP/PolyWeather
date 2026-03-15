@@ -4,6 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>METAR vs Weather.com — Comparison Dashboard</title>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4/dist/chart.umd.min.js"></script>
 <style>
   *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
@@ -44,6 +45,14 @@
     font-family: inherit;
   }
   .controls button:hover { background: #2563eb; }
+  .controls button.tracking {
+    background: #dc2626; animation: pulse 2s infinite;
+  }
+  .controls button.tracking:hover { background: #b91c1c; }
+  @keyframes pulse {
+    0%, 100% { box-shadow: 0 0 0 0 rgba(220,38,38,.5); }
+    50% { box-shadow: 0 0 0 6px rgba(220,38,38,0); }
+  }
 
   .summary-bar {
     max-width: 1600px; margin: 0 auto 1.25rem;
@@ -116,6 +125,13 @@
   .loading { color: #64748b; }
   .error { color: #f87171; }
 
+  .chart-wrap {
+    max-width: 1600px; margin: 0 auto 1.25rem;
+    background: #1e293b; border: 1px solid #334155; border-radius: .75rem;
+    padding: 1rem 1.25rem .75rem;
+    position: relative; height: 300px;
+  }
+
   .legend {
     max-width: 1600px; margin: .75rem auto 0;
     display: flex; gap: 1.5rem; font-size: .6875rem; color: #64748b;
@@ -145,6 +161,8 @@
     <label for="dateInput">Date</label>
     <input type="date" id="dateInput">
     <button onclick="run()">Compare</button>
+    <button id="trackBtn" onclick="toggleTrack()">Track</button>
+    <span id="trackStatus" style="font-size:.6875rem;color:#64748b"></span>
   </div>
 </div>
 
@@ -204,6 +222,23 @@
 const STATION_ELEV_M = { KSEA: 132.0, KJFK: 4.0, KORD: 205.0, KLAX: 38.0,
   KDEN: 1655.0, KATL: 313.0, KSFO: 4.0, KBOS: 6.0, KMIA: 2.4, KDFW: 183.0,
   KPHX: 346.0, KLAS: 664.0, KPDX: 6.0, KMSP: 256.0, KDTW: 196.0 };
+
+const STATION_TZ = {
+  KSEA:'America/Los_Angeles', KLAX:'America/Los_Angeles', KSFO:'America/Los_Angeles',
+  KPDX:'America/Los_Angeles', KLAS:'America/Los_Angeles', KSAN:'America/Los_Angeles',
+  KJFK:'America/New_York', KLGA:'America/New_York', KEWR:'America/New_York',
+  KATL:'America/New_York', KBOS:'America/New_York', KMIA:'America/New_York',
+  KPHL:'America/New_York', KDCA:'America/New_York', KMCO:'America/New_York',
+  KTPA:'America/New_York', KCLT:'America/New_York', KPIT:'America/New_York',
+  KBUF:'America/New_York',
+  KORD:'America/Chicago', KDFW:'America/Chicago', KDAL:'America/Chicago',
+  KIAH:'America/Chicago', KAUS:'America/Chicago', KBNA:'America/Chicago',
+  KMSP:'America/Chicago', KMKE:'America/Chicago', KSTL:'America/Chicago',
+  KMCI:'America/Chicago', KRDU:'America/New_York', KMEM:'America/Chicago',
+  KDEN:'America/Denver', KSLC:'America/Denver',
+  KPHX:'America/Phoenix', KDTW:'America/Detroit',
+  PANC:'America/Anchorage', PHNL:'Pacific/Honolulu',
+};
 
 // ---------------------------------------------------------------------------
 // METAR parser (JS port of metar_to_weathercom.py)
@@ -492,7 +527,7 @@ async function fetchWeathercom(station, dateStr) {
 // ---------------------------------------------------------------------------
 // Rendering
 // ---------------------------------------------------------------------------
-const TZ = 'America/Los_Angeles';
+let TZ = 'America/Los_Angeles';
 function localDateStr(epoch, tz) {
   return new Date(epoch * 1000).toLocaleDateString('en-CA', { timeZone: tz });
 }
@@ -608,6 +643,7 @@ async function run() {
   document.getElementById('summaryBar').innerHTML = '';
 
   const elevM = STATION_ELEV_M[station] ?? null;
+  TZ = STATION_TZ[station] || 'America/Los_Angeles';
 
   try {
     const [rawLines, wcObs] = await Promise.all([
@@ -629,6 +665,106 @@ async function run() {
     loading.textContent = 'Error: ' + e.message;
     console.error(e);
   }
+}
+
+// ---------------------------------------------------------------------------
+// Track mode — auto-refresh every 60s, beep on new entry
+// ---------------------------------------------------------------------------
+let _trackInterval = null;
+let _trackCountdown = null;
+let _lastMetarCount = -1;
+let _secsLeft = 0;
+
+const _audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+
+function beep() {
+  const osc = _audioCtx.createOscillator();
+  const gain = _audioCtx.createGain();
+  osc.connect(gain);
+  gain.connect(_audioCtx.destination);
+  osc.type = 'sine';
+  osc.frequency.value = 880;
+  gain.gain.setValueAtTime(0.3, _audioCtx.currentTime);
+  gain.gain.exponentialRampToValueAtTime(0.001, _audioCtx.currentTime + 0.4);
+  osc.start();
+  osc.stop(_audioCtx.currentTime + 0.4);
+}
+
+function updateTrackStatus() {
+  const el = document.getElementById('trackStatus');
+  if (!_trackInterval) { el.textContent = ''; return; }
+  el.textContent = `next refresh in ${_secsLeft}s`;
+}
+
+async function trackRefresh() {
+  const station = document.getElementById('stationInput').value.toUpperCase().trim();
+  const dateStr = document.getElementById('dateInput').value;
+  if (!dateStr || !isToday(dateStr)) { stopTrack(); return; }
+
+  const elevM = STATION_ELEV_M[station] ?? null;
+  try {
+    const [rawLines, wcObs] = await Promise.all([
+      fetchMetarsRaw(station, dateStr),
+      fetchWeathercom(station, dateStr),
+    ]);
+    if (!rawLines.length) return;
+
+    setParseRefDate(new Date(dateStr + 'T12:00:00Z'));
+    const allMetar = rawLines.map(line => toWeathercom(parseMetar(line), elevM))
+      .filter(o => o.valid_time_gmt && localDateStr(o.valid_time_gmt, TZ) === dateStr);
+    allMetar.sort((a, b) => (a.valid_time_gmt || 0) - (b.valid_time_gmt || 0));
+
+    const newCount = allMetar.length;
+    if (_lastMetarCount >= 0 && newCount > _lastMetarCount) {
+      beep();
+      document.title = `🔔 New METAR — ${station}`;
+      setTimeout(() => { document.title = 'METAR vs Weather.com — Comparison Dashboard'; }, 5000);
+    }
+    _lastMetarCount = newCount;
+
+    render(allMetar, wcObs);
+  } catch (e) {
+    console.error('Track refresh error:', e);
+  }
+}
+
+function startTrack() {
+  if (_audioCtx.state === 'suspended') _audioCtx.resume();
+  const btn = document.getElementById('trackBtn');
+  btn.textContent = 'Stop';
+  btn.classList.add('tracking');
+
+  _lastMetarCount = -1;
+  // do an immediate refresh to seed the count
+  trackRefresh().then(() => {
+    _secsLeft = 60;
+    updateTrackStatus();
+    _trackCountdown = setInterval(() => {
+      _secsLeft = Math.max(0, _secsLeft - 1);
+      updateTrackStatus();
+    }, 1000);
+    _trackInterval = setInterval(() => {
+      _secsLeft = 60;
+      trackRefresh();
+    }, 60000);
+  });
+}
+
+function stopTrack() {
+  clearInterval(_trackInterval);
+  clearInterval(_trackCountdown);
+  _trackInterval = null;
+  _trackCountdown = null;
+  _lastMetarCount = -1;
+  const btn = document.getElementById('trackBtn');
+  btn.textContent = 'Track';
+  btn.classList.remove('tracking');
+  updateTrackStatus();
+}
+
+function toggleTrack() {
+  if (_trackInterval) stopTrack();
+  else startTrack();
 }
 
 // Default date to today

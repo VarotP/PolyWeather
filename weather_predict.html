@@ -51,6 +51,14 @@
     font-family: inherit;
   }
   .controls button:hover { background: #2563eb; }
+  .controls button.tracking {
+    background: #dc2626; animation: pulse 2s infinite;
+  }
+  .controls button.tracking:hover { background: #b91c1c; }
+  @keyframes pulse {
+    0%, 100% { box-shadow: 0 0 0 0 rgba(220,38,38,.5); }
+    50% { box-shadow: 0 0 0 6px rgba(220,38,38,0); }
+  }
   .btn-save {
     background: #16a34a; padding: .4375rem .875rem;
   }
@@ -162,6 +170,52 @@
     background: #0f172a;
   }
   .leaflet-control-attribution { font-size: .55rem !important; }
+
+  .section-header {
+    max-width: 1440px; margin: 1.5rem auto .75rem;
+    display: flex; align-items: center; justify-content: space-between;
+  }
+  .section-header h2 { font-size: 1rem; font-weight: 600; color: #f8fafc; }
+  .section-header p { font-size: .75rem; color: #94a3b8; }
+  .badge-wc { background: #065f46; color: #a7f3d0; }
+
+  .compare-wrap {
+    max-width: 1440px; margin: 0 auto;
+    background: #1e293b; border: 1px solid #334155; border-radius: .75rem;
+    overflow-x: auto;
+  }
+  .compare-wrap table { font-size: .75rem; }
+  .compare-wrap thead th {
+    text-align: center; font-size: .625rem; padding: .5rem .625rem;
+  }
+  .compare-wrap thead th.left { text-align: left; }
+  .compare-wrap thead th.group-metar { border-bottom-color: #6366f1; }
+  .compare-wrap thead th.group-wc { border-bottom-color: #10b981; }
+  .compare-wrap thead th.group-diff { border-bottom-color: #f59e0b; }
+  .compare-wrap thead tr:first-child th { top: 0; }
+  .compare-wrap thead tr:nth-child(2) th { top: 1.625rem; }
+  .compare-wrap tbody td {
+    text-align: center; padding: .375rem .625rem;
+    font-variant-numeric: tabular-nums;
+  }
+  .compare-wrap tbody td.left { text-align: left; }
+
+  .match { color: #4ade80; }
+  .mismatch { color: #f87171; font-weight: 600; }
+  .close { color: #fbbf24; }
+  .na { color: #475569; }
+
+  .legend {
+    max-width: 1440px; margin: .75rem auto 0;
+    display: flex; gap: 1.5rem; font-size: .6875rem; color: #64748b;
+  }
+  .legend span { display: inline-flex; align-items: center; gap: .25rem; }
+  .legend .dot {
+    display: inline-block; width: 8px; height: 8px; border-radius: 50%;
+  }
+  .legend .dot-match { background: #4ade80; }
+  .legend .dot-close { background: #fbbf24; }
+  .legend .dot-miss { background: #f87171; }
 </style>
 </head>
 <body>
@@ -188,6 +242,8 @@
       <span class="label">Save Predictions</span>
       <span class="check">Saved!</span>
     </button>
+    <button id="trackBtn" onclick="toggleTrack()">Track</button>
+    <span id="trackStatus" style="font-size:.6875rem;color:#64748b"></span>
   </div>
 </div>
 
@@ -234,6 +290,45 @@
   </table>
 </div>
 <div class="source-note" id="sourceNote"></div>
+
+<div id="compareSection" style="display:none">
+  <div class="section-header">
+    <div>
+      <h2>METAR<span class="badge badge-metar" style="margin-left:.5rem">aviationweather.gov</span> vs Weather.com<span class="badge badge-wc" style="margin-left:.5rem">api.weather.com</span></h2>
+      <p id="compareSummary"></p>
+    </div>
+  </div>
+  <div class="compare-wrap">
+    <table>
+      <thead>
+        <tr>
+          <th class="left" rowspan="2">Time</th>
+          <th colspan="7" class="group-metar">METAR Parsed</th>
+          <th colspan="7" class="group-wc">Weather.com</th>
+          <th colspan="7" class="group-diff">Diff</th>
+          <th class="left" rowspan="2">Raw METAR</th>
+        </tr>
+        <tr>
+          <th class="group-metar">Temp</th><th class="group-metar">Dew</th><th class="group-metar">RH</th>
+          <th class="group-metar">Wind</th><th class="group-metar">Gust</th><th class="group-metar">Pres</th>
+          <th class="group-metar">Phrase</th>
+          <th class="group-wc">Temp</th><th class="group-wc">Dew</th><th class="group-wc">RH</th>
+          <th class="group-wc">Wind</th><th class="group-wc">Gust</th><th class="group-wc">Pres</th>
+          <th class="group-wc">Phrase</th>
+          <th class="group-diff">Temp</th><th class="group-diff">Dew</th><th class="group-diff">RH</th>
+          <th class="group-diff">Wind</th><th class="group-diff">Gust</th><th class="group-diff">Pres</th>
+          <th class="group-diff">Phrase</th>
+        </tr>
+      </thead>
+      <tbody id="compareTbody"></tbody>
+    </table>
+  </div>
+  <div class="legend">
+    <span><span class="dot dot-match"></span> Exact match</span>
+    <span><span class="dot dot-close"></span> Off by 1 (rounding)</span>
+    <span><span class="dot dot-miss"></span> Mismatch</span>
+  </div>
+</div>
 
 <script>
 // ---------------------------------------------------------------------------
@@ -561,6 +656,16 @@ async function fetchNAM(lat, lon, tz, dateStr) {
   return await res.json();
 }
 
+async function fetchWeathercomObs(station, dateStr) {
+  const ds = dateStr.replace(/-/g, '');
+  const url = `https://api.weather.com/v1/location/${station}:9:US/observations/historical.json`
+    + `?apiKey=${TWC_KEY}&units=e&startDate=${ds}&endDate=${ds}`;
+  const res = await fetch(proxy(url));
+  if (!res.ok) throw new Error(`Weather.com obs: HTTP ${res.status}`);
+  const data = await res.json();
+  return data.observations || [];
+}
+
 function processHRRR(data, dateStr, offset) {
   const hourly = data.hourly || {};
   const times = hourly.time || [];
@@ -848,6 +953,86 @@ function renderTable(obsByHour, gefs, hrrr, nam, twc, tz) {
 }
 
 // ---------------------------------------------------------------------------
+// METAR vs Weather.com comparison
+// ---------------------------------------------------------------------------
+function diffCell(ours, theirs, isNumeric) {
+  if (ours == null && theirs == null) return { html: '<span class="na">—</span>', match: true, close: false };
+  if (ours == null || theirs == null) return { html: `<span class="mismatch">${ours ?? '—'} / ${theirs ?? '—'}</span>`, match: false, close: false };
+  if (ours === theirs) return { html: '<span class="match">0</span>', match: true, close: false };
+  if (isNumeric) {
+    const d = +(ours - theirs).toFixed(2);
+    const abs = Math.abs(d);
+    const cls = abs <= 1 ? 'close' : 'mismatch';
+    return { html: `<span class="${cls}">${d > 0 ? '+' : ''}${d}</span>`, match: false, close: abs <= 1 };
+  }
+  return { html: '<span class="mismatch">differs</span>', match: false, close: false };
+}
+
+function fmtTimeCompare(epoch) {
+  return new Date(epoch * 1000).toLocaleTimeString('en-US',
+    { timeZone: _currentTz, hour: '2-digit', minute: '2-digit', hour12: true });
+}
+
+function renderCompare(metarObs, wcObs) {
+  const section = document.getElementById('compareSection');
+  if (!wcObs || !wcObs.length) { section.style.display = 'none'; return; }
+
+  const rows = [];
+  let exact = 0, close = 0, miss = 0, total = 0;
+  const fields = ['temp', 'dewPt', 'rh', 'wspd', 'gust', 'pressure'];
+
+  for (const wc of wcObs) {
+    let bestMetar = null, bestDelta = Infinity;
+    for (const m of metarObs) {
+      if (m.epoch == null) continue;
+      const delta = Math.abs(m.epoch - wc.valid_time_gmt);
+      if (delta < bestDelta) { bestDelta = delta; bestMetar = m; }
+    }
+    if (!bestMetar || bestDelta > 300) continue;
+
+    const diffs = {};
+    for (const f of fields) {
+      const d = diffCell(bestMetar[f], wc[f], true);
+      diffs[f] = d;
+      total++;
+      if (d.match) exact++;
+      else if (d.close) close++;
+      else miss++;
+    }
+    const phraseD = diffCell(bestMetar.wx_phrase, wc.wx_phrase, false);
+    diffs.wx_phrase = phraseD;
+    total++;
+    if (phraseD.match) exact++; else miss++;
+
+    rows.push({ m: bestMetar, wc, diffs });
+  }
+
+  const pct = total ? ((exact + close) / total * 100).toFixed(1) : 0;
+  document.getElementById('compareSummary').textContent =
+    `${rows.length} matched · ${pct}% agree · ${exact} exact · ${close} off-by-1 · ${miss} mismatch`;
+
+  document.getElementById('compareTbody').innerHTML = rows.map(({ m, wc, diffs }) => {
+    const t = fmtTimeCompare(wc.valid_time_gmt);
+    const v = (x) => x ?? '—';
+    return `<tr>
+      <td class="left">${t}</td>
+      <td><strong>${v(m.temp)}</strong></td><td>${v(m.dewPt)}</td><td>${v(m.rh)}</td>
+      <td>${v(m.wspd)}</td><td>${v(m.gust)}</td><td>${v(m.pressure)}</td>
+      <td class="left" style="max-width:130px;overflow:hidden;text-overflow:ellipsis">${m.wx_phrase}</td>
+      <td><strong>${v(wc.temp)}</strong></td><td>${v(wc.dewPt)}</td><td>${v(wc.rh)}</td>
+      <td>${v(wc.wspd)}</td><td>${v(wc.gust)}</td><td>${v(wc.pressure)}</td>
+      <td class="left" style="max-width:130px;overflow:hidden;text-overflow:ellipsis">${wc.wx_phrase}</td>
+      <td>${diffs.temp.html}</td><td>${diffs.dewPt.html}</td><td>${diffs.rh.html}</td>
+      <td>${diffs.wspd.html}</td><td>${diffs.gust.html}</td><td>${diffs.pressure.html}</td>
+      <td>${diffs.wx_phrase.html}</td>
+      <td class="metar-raw" title="${m.raw.replace(/"/g, '&quot;')}">${m.raw}</td>
+    </tr>`;
+  }).join('');
+
+  section.style.display = rows.length ? '' : 'none';
+}
+
+// ---------------------------------------------------------------------------
 // Save predictions
 // ---------------------------------------------------------------------------
 let _lastSnapshot = null;
@@ -933,7 +1118,8 @@ async function run() {
     ? fetchTWC(info.lat, info.lon, tz, dateStr).catch(e => { console.warn('TWC error:', e); return null; })
     : Promise.resolve(null);
 
-  const [rawLines, gefsRaw, hrrrRaw, namRaw, twcRaw] = await Promise.all([metarP, gefsP, hrrrP, namP, twcP]);
+  const wcObsP = fetchWeathercomObs(station, dateStr).catch(e => { console.warn('WC obs error:', e); return []; });
+  const [rawLines, gefsRaw, hrrrRaw, namRaw, twcRaw, wcObsData] = await Promise.all([metarP, gefsP, hrrrP, namP, twcP, wcObsP]);
 
   // Process METAR — filter to selected local date only
   if (rawLines.length) {
@@ -942,6 +1128,7 @@ async function run() {
       .filter(o => o.epoch && localDateStr(o.epoch, tz) === dateStr);
     obsAll.sort((a, b) => (a.epoch || 0) - (b.epoch || 0));
   }
+  _lastMetarCount = obsAll.length;
 
   // Process GEFS
   if (gefsRaw) {
@@ -1029,6 +1216,7 @@ async function run() {
   renderSummary(obsAll, gefs, hrrr, nam, twc);
   renderChart(obsByHour, gefs, hrrr, nam, twc, parseInt(nowH, 10), isToday(dateStr));
   renderTable(obsByHour, gefs, hrrr, nam, twc, tz);
+  renderCompare(obsAll, wcObsData);
 
   const models = [
     gefs ? `GEFS ×${gefs.nMembers}` : null,
@@ -1044,8 +1232,8 @@ async function run() {
   document.getElementById('sourceNote').textContent =
     `METAR: ${isToday(dateStr) ? 'aviationweather.gov' : 'IEM archive'} · GEFS/HRRR/NAM: Open-Meteo · TWC: Weather.com blended forecast`;
 
+  _currentTz = tz;
   if (info && isToday(dateStr)) {
-    _currentTz = tz;
     initRadarMap(info.lat, info.lon, tz);
   } else {
     document.getElementById('mapSection').style.display = 'none';
@@ -1188,6 +1376,88 @@ function startClock(tz) {
   }
   tick();
   _clockInterval = setInterval(tick, 1000);
+}
+
+// ---------------------------------------------------------------------------
+// Track mode — auto-refresh every 60s, beep on new entry
+// ---------------------------------------------------------------------------
+let _trackInterval = null;
+let _trackCountdown = null;
+let _lastMetarCount = -1;
+let _secsLeft = 0;
+
+const _audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+
+function beep() {
+  const osc = _audioCtx.createOscillator();
+  const gain = _audioCtx.createGain();
+  osc.connect(gain);
+  gain.connect(_audioCtx.destination);
+  osc.type = 'sine';
+  osc.frequency.value = 880;
+  gain.gain.setValueAtTime(0.3, _audioCtx.currentTime);
+  gain.gain.exponentialRampToValueAtTime(0.001, _audioCtx.currentTime + 0.4);
+  osc.start();
+  osc.stop(_audioCtx.currentTime + 0.4);
+}
+
+function updateTrackStatus() {
+  const el = document.getElementById('trackStatus');
+  if (!_trackInterval) { el.textContent = ''; return; }
+  el.textContent = `next refresh in ${_secsLeft}s`;
+}
+
+async function trackRefresh() {
+  const dateStr = document.getElementById('dateInput').value;
+  if (!dateStr || !isToday(dateStr)) { stopTrack(); return; }
+
+  const prevCount = _lastMetarCount;
+  await run();
+
+  const station = document.getElementById('stationInput').value.toUpperCase().trim();
+  if (prevCount >= 0 && _lastMetarCount > prevCount) {
+    beep();
+    document.title = `\u{1F514} New METAR — ${station}`;
+    setTimeout(() => { document.title = 'Temperature Forecast Dashboard'; }, 5000);
+  }
+}
+
+function startTrack() {
+  if (_audioCtx.state === 'suspended') _audioCtx.resume();
+  const btn = document.getElementById('trackBtn');
+  btn.textContent = 'Stop';
+  btn.classList.add('tracking');
+
+  _lastMetarCount = -1;
+  trackRefresh().then(() => {
+    _secsLeft = 60;
+    updateTrackStatus();
+    _trackCountdown = setInterval(() => {
+      _secsLeft = Math.max(0, _secsLeft - 1);
+      updateTrackStatus();
+    }, 1000);
+    _trackInterval = setInterval(() => {
+      _secsLeft = 60;
+      trackRefresh();
+    }, 60000);
+  });
+}
+
+function stopTrack() {
+  clearInterval(_trackInterval);
+  clearInterval(_trackCountdown);
+  _trackInterval = null;
+  _trackCountdown = null;
+  _lastMetarCount = -1;
+  const btn = document.getElementById('trackBtn');
+  btn.textContent = 'Track';
+  btn.classList.remove('tracking');
+  updateTrackStatus();
+}
+
+function toggleTrack() {
+  if (_trackInterval) stopTrack();
+  else startTrack();
 }
 
 (function init() {

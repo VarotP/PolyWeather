@@ -56,6 +56,34 @@ python3 polymarket_papertrade.py --settle
 python3 polymarket_papertrade.py --eval
 ```
 
+### `save_predictions.py` — Auto-Save Prediction Snapshots
+
+Save GEFS/HRRR/NAM/TWC forecasts to `predictions/` for later accuracy analysis.
+
+```bash
+# Save tomorrow's predictions for all configured stations
+python3 save_predictions.py
+
+# Specific date
+python3 save_predictions.py --date 2026-03-17
+
+# Specific station(s)
+python3 save_predictions.py --stations KSEA KORD
+
+# Dry run — fetch data but don't write files
+python3 save_predictions.py --dry-run
+```
+
+Stations are configured in the `STATIONS` dict at the top of the file (default: KSEA, KORD, KLGA, KATL).
+
+### `analyze_predictions.py` — Prediction Accuracy Analysis
+
+Compare saved predictions against actual Weather.com observations (the same source Polymarket resolves from).
+
+```bash
+python3 analyze_predictions.py
+```
+
 ### `server.py` — Weather Dashboard Server
 
 Local HTTP server that serves the weather dashboards and proxies external API requests to bypass CORS.
@@ -171,6 +199,9 @@ Settlement uses **Polymarket's own resolution** (Gamma API), not a weather API. 
 
 # Evaluate daily
 30 19 * * * /Users/evlav/VSC/polymarketbot/.venv/bin/python3 /Users/evlav/VSC/polymarketbot/polymarket_papertrade.py --eval >> /Users/evlav/VSC/polymarketbot/log_eval.log 2>&1
+
+# Save prediction snapshots nightly at 11:50 PM PST (07:50 UTC) for tomorrow
+50 7 * * * /Users/evlav/VSC/polymarketbot/.venv/bin/python3 /Users/evlav/VSC/polymarketbot/save_predictions.py >> /Users/evlav/VSC/polymarketbot/log_save.log 2>&1
 ```
 
 ## File Layout
@@ -191,9 +222,13 @@ polymarketbot/
 ├── weather_compare.html        # METAR vs Weather.com comparison dashboard
 ├── metar_to_weathercom.py      # METAR → Weather.com JSON parser (Python CLI)
 │
+├── save_predictions.py         # Auto-save prediction snapshots (cron)
+├── analyze_predictions.py      # Prediction accuracy analysis vs Weather.com
+│
 ├── predictions/                # Saved prediction snapshots (JSON)
 ├── log_run.log                 # Cron output: strategy runs
 ├── log_settle.log              # Cron output: settlement
+├── log_save.log                # Cron output: prediction saves
 └── log_eval.log                # Cron output: evaluation
 ```
 
